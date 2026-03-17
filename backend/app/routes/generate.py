@@ -57,21 +57,15 @@ async def generate_treatment_plan(
         from app.services.ai_pipeline import run_pipeline
 
         try:
-            # Stage 1: Running pipeline
-            yield _sse_event("progress", {"stage": "pipeline", "message": "Running AI analysis..."})
-
-            pipeline_result = await run_pipeline(transcript_text)
-
-            yield _sse_event("progress", {"stage": "pipeline_complete", "message": "Analysis complete"})
-
-            # Stage 2: Check for existing plan
-            yield _sse_event("progress", {"stage": "saving", "message": "Saving results..."})
+            # Stage 1: Check for existing plan (before pipeline so we can pass it)
+            yield _sse_event("progress", {"stage": "saving", "message": "Checking for existing plan..."})
 
             plan_result = await db.execute(
                 select(TreatmentPlan).where(TreatmentPlan.client_id == client_id)
             )
             plan = plan_result.scalar_one_or_none()
 
+            existing_plan_content = None
             if plan is None:
                 # Create new plan
                 plan = TreatmentPlan(
@@ -95,6 +89,14 @@ async def generate_treatment_plan(
                 next_version_number = (latest.version_number if latest else 0) + 1
                 source = "ai_updated"
                 plan.status = "draft"
+                existing_plan_content = latest.therapist_content if latest else None
+
+            # Stage 2: Running pipeline
+            yield _sse_event("progress", {"stage": "pipeline", "message": "Running AI analysis..."})
+
+            pipeline_result = await run_pipeline(transcript_text, existing_plan=existing_plan_content)
+
+            yield _sse_event("progress", {"stage": "pipeline_complete", "message": "Analysis complete"})
 
             # Stage 3: Create version
             yield _sse_event("progress", {"stage": "version", "message": "Creating plan version..."})

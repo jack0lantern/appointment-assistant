@@ -9,6 +9,7 @@ from app.models.treatment_plan import TreatmentPlan
 from app.models.treatment_plan_version import TreatmentPlanVersion
 from app.models.safety_flag import SafetyFlag
 from app.models.homework_item import HomeworkItem
+from app.models.evaluation_run import EvaluationRun
 
 __all__ = [
     "Base",
@@ -23,4 +24,5 @@ __all__ = [
     "TreatmentPlanVersion",
     "SafetyFlag",
     "HomeworkItem",
+    "EvaluationRun",
 ]
