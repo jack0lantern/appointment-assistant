@@ -24,10 +24,7 @@ async def get_my_homework(
 
     result = await db.execute(
         select(HomeworkItem)
-        .where(
-            HomeworkItem.client_id == client.id,
-            HomeworkItem.completed == False,  # noqa: E712
-        )
+        .where(HomeworkItem.client_id == client.id)
         .order_by(HomeworkItem.created_at.desc())
     )
     items = result.scalars().all()

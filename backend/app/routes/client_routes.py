@@ -31,9 +31,24 @@ async def get_my_treatment_plan(
     current_version = plan.current_version
     client_content = current_version.client_content if current_version else None
 
+    # Return structure matching frontend TreatmentPlan type (plan with current_version)
+    plan_data = TreatmentPlanResponse.model_validate(plan)
     return {
-        "plan": TreatmentPlanResponse.model_validate(plan),
-        "client_content": client_content,
+        "plan": {
+            **plan_data.model_dump(),
+            "current_version": (
+                {
+                    "client_content": client_content,
+                    "created_at": (
+                        current_version.created_at.isoformat()
+                        if current_version and current_version.created_at
+                        else None
+                    ),
+                }
+                if current_version
+                else None
+            ),
+        },
     }
 
 
@@ -55,8 +70,16 @@ async def get_my_sessions(
 
     return [
         {
-            "session": SessionResponse.model_validate(s),
-            "client_summary": s.summary.client_summary if s.summary else None,
+            **SessionResponse.model_validate(s).model_dump(),
+            "summary": (
+                {
+                    "therapist_summary": s.summary.therapist_summary,
+                    "client_summary": s.summary.client_summary,
+                    "key_themes": s.summary.key_themes or [],
+                }
+                if s.summary
+                else None
+            ),
         }
         for s in sessions
     ]
