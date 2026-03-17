@@ -116,8 +116,8 @@ All agents build to these contracts.
 ## Key Conventions
 
 ### Environment Setup
-- Create `.env.example` with all required keys (ANTHROPIC_API_KEY, DATABASE_URL, JWT_SECRET, etc.)
-- `.env` is git-ignored; developers populate from example
+- `backend/.env.example` documents required keys (ANTHROPIC_API_KEY, DATABASE_URL, JWT_SECRET, etc.)
+- Copy to `backend/.env` and populate; `.env` is git-ignored
 
 ### Database Migrations
 - Use Alembic for all schema changes

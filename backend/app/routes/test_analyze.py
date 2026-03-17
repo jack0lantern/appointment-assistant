@@ -77,7 +77,12 @@ async def _persist_pipeline_results(
     from sqlalchemy import func
 
     # Treatment plan: look up existing or create new
-    plan = client.treatment_plan
+    # Use explicit async query — accessing client.treatment_plan directly triggers
+    # a synchronous lazy load on a flushed-but-not-reloaded object → MissingGreenlet.
+    plan_result = await db.execute(
+        select(TreatmentPlan).where(TreatmentPlan.client_id == client.id)
+    )
+    plan = plan_result.scalar_one_or_none()
     if plan is None:
         plan = TreatmentPlan(
             client_id=client.id,
