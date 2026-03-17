@@ -98,6 +98,7 @@ async def get_client(
 
     return {
         "client": ClientResponse.model_validate(client),
-        "recent_sessions": [SessionResponse.model_validate(s) for s in recent_sessions],
-        "active_plan": plan_summary,
+        "sessions": [SessionResponse.model_validate(s) for s in recent_sessions],
+        "treatment_plan": plan_summary,
+        "safety_flags": [],
     }

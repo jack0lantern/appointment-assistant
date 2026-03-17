@@ -7,9 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_db, require_therapist
 from app.models.client import Client
 from app.models.safety_flag import SafetyFlag
+from app.models.session import Session
 from app.models.treatment_plan import TreatmentPlan
 from app.models.treatment_plan_version import TreatmentPlanVersion
 from app.models.user import User
+from app.schemas.safety import SafetyFlagResponse
 from app.schemas.treatment_plan import (
     DiffResponse,
     PlanEditRequest,
@@ -51,10 +53,24 @@ async def get_current_plan(
     if plan.current_version_id and plan.current_version:
         latest_version = VersionResponse.model_validate(plan.current_version)
 
-    return {
-        "plan": TreatmentPlanResponse.model_validate(plan),
-        "current_version": latest_version,
+    # Safety flags for the current version (or all client flags if no version)
+    flag_result = await db.execute(
+        select(SafetyFlag)
+        .join(Session, SafetyFlag.session_id == Session.id)
+        .where(Session.client_id == client_id)
+        .order_by(SafetyFlag.created_at.desc())
+    )
+    safety_flags = flag_result.scalars().all()
+
+    treatment_plan_data = TreatmentPlanResponse.model_validate(plan)
+    response = {
+        "treatment_plan": {
+            **treatment_plan_data.model_dump(),
+            "current_version": latest_version,
+        },
+        "safety_flags": [SafetyFlagResponse.model_validate(f) for f in safety_flags],
     }
+    return response
 
 
 # ── Version list ─────────────────────────────────────────────────────────────
