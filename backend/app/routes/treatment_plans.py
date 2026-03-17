@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_db, require_therapist
+from app.services.plan_service import compute_diff
 from app.models.client import Client
 from app.models.safety_flag import SafetyFlag
 from app.models.session import Session
@@ -236,7 +237,7 @@ async def diff_versions(
     if ver1 is None or ver2 is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Version not found")
 
-    diffs = _compute_diffs(ver1.therapist_content or {}, ver2.therapist_content or {})
+    diffs = compute_diff(ver1.therapist_content or {}, ver2.therapist_content or {})
     return DiffResponse(version_1=v1, version_2=v2, diffs=diffs)
 
 
@@ -259,15 +260,3 @@ async def _get_plan_for_therapist(
     if plan is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Treatment plan not found")
     return plan
-
-
-def _compute_diffs(content1: dict, content2: dict) -> dict:
-    """Compute section-level diffs between two therapist_content dicts."""
-    all_keys = set(list(content1.keys()) + list(content2.keys()))
-    diffs = {}
-    for key in sorted(all_keys):
-        val1 = content1.get(key)
-        val2 = content2.get(key)
-        if val1 != val2:
-            diffs[key] = {"old": val1, "new": val2}
-    return diffs
