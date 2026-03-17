@@ -89,7 +89,7 @@ Tasks:
 4. Create `backend/app/config.py` (Pydantic Settings: DATABASE_URL, ANTHROPIC_API_KEY, JWT_SECRET)
 5. Create `backend/app/database.py` (async SQLAlchemy engine + session factory)
 6. Create `backend/app/main.py` (FastAPI app with CORS, lifespan for DB)
-7. Create `.env.example` and `.env`
+7. Create `backend/.env.example` and `backend/.env`
 8. Create ALL Pydantic schemas in `backend/app/schemas/` — these are the **contracts** agents build against:
    - `schemas/auth.py` — LoginRequest, LoginResponse, UserResponse
    - `schemas/client.py` — ClientCreate, ClientResponse
