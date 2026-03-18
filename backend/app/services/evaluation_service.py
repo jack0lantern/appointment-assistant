@@ -8,6 +8,7 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import AsyncGenerator
 
 from app.schemas.evaluation import (
     EvaluationRunResponse,
@@ -94,7 +95,8 @@ def validate_plan_structure(
 
 def analyze_readability(therapist_content: dict, client_content: dict) -> ReadabilityResult:
     """Compute readability for both plan views."""
-    # Flatten therapist text — list fields only
+    # Flatten therapist text — extract only string values from dicts
+    # Join with periods to preserve sentence boundaries for accurate FK grade calculation
     t_parts = []
     for key, val in therapist_content.items():
         if key.endswith("_citations"):
@@ -104,10 +106,13 @@ def analyze_readability(therapist_content: dict, client_content: dict) -> Readab
                 if isinstance(item, str):
                     t_parts.append(item)
                 elif isinstance(item, dict):
-                    t_parts.append(" ".join(str(v) for v in item.values()))
-    therapist_text = " ".join(t_parts)
+                    # Extract only string values, not dict structure
+                    for v in item.values():
+                        if isinstance(v, str):
+                            t_parts.append(v)
+    therapist_text = ". ".join(t_parts) + "." if t_parts else ""
 
-    # Flatten client text
+    # Flatten client text — join with periods to preserve sentence boundaries
     c_parts = []
     if client_content:
         for val in client_content.values():
@@ -117,7 +122,7 @@ def analyze_readability(therapist_content: dict, client_content: dict) -> Readab
                 for item in val:
                     if isinstance(item, str):
                         c_parts.append(item)
-    client_text = " ".join(c_parts)
+    client_text = ". ".join(c_parts) + "." if c_parts else ""
 
     t_scores = compute_readability(therapist_text)
     c_scores = compute_readability(client_text)
@@ -155,17 +160,32 @@ def check_safety_detection(
     )
 
 
-async def run_evaluation(fixture_dir: str) -> EvaluationRunResponse:
-    """Run AI pipeline + validation on all fixture transcripts."""
+async def run_evaluation_stream(
+    fixture_dir: str,
+    cancel_event: asyncio.Event,
+) -> AsyncGenerator[tuple[TranscriptEvalResult, int, int], None]:
+    """
+    Async generator that yields (result, current_index, total) for each transcript.
+    Checks cancel_event before processing each transcript and stops if set.
+    """
     from app.services.ai_pipeline import run_pipeline
 
     fixture_path = Path(fixture_dir)
-    results: list[TranscriptEvalResult] = []
+    txt_files = sorted(fixture_path.glob("*.txt"))
+    total = len(txt_files)
 
-    for txt_file in sorted(fixture_path.glob("*.txt")):
+    for idx, txt_file in enumerate(txt_files):
+        # Check if cancelled before processing next transcript
+        if cancel_event.is_set():
+            break
+
         transcript_text = txt_file.read_text()
         transcript_lines = transcript_text.splitlines()
         t0 = time.time()
+
+        tc = None
+        cc = None
+        safety_flags_detail = None
 
         try:
             pipeline_result = await run_pipeline(transcript_text)
@@ -173,6 +193,7 @@ async def run_evaluation(fixture_dir: str) -> EvaluationRunResponse:
 
             tc = pipeline_result.therapist_content.model_dump()
             cc = pipeline_result.client_content.model_dump()
+            safety_flags_detail = [f.model_dump() for f in pipeline_result.safety_flags]
 
             structural = validate_plan_structure(tc, cc, transcript_lines)
             readability = analyze_readability(tc, cc)
@@ -195,13 +216,28 @@ async def run_evaluation(fixture_dir: str) -> EvaluationRunResponse:
             )
             safety = None
 
-        results.append(TranscriptEvalResult(
+        result = TranscriptEvalResult(
             transcript_name=txt_file.name,
             structural=structural,
             readability=readability,
             safety=safety,
             generation_time_seconds=round(elapsed, 2),
-        ))
+            therapist_content=tc,
+            client_content=cc,
+            transcript_text=transcript_text,
+            safety_flags_detail=safety_flags_detail,
+        )
+
+        yield result, idx, total
+
+
+async def run_evaluation(fixture_dir: str) -> EvaluationRunResponse:
+    """Run AI pipeline + validation on all fixture transcripts (backward-compat wrapper)."""
+    cancel_event = asyncio.Event()
+    results: list[TranscriptEvalResult] = []
+
+    async for result, _idx, _total in run_evaluation_stream(fixture_dir, cancel_event):
+        results.append(result)
 
     passed_structural = sum(1 for r in results if r.structural.valid)
     passed_readability = sum(1 for r in results if r.readability.target_met)
@@ -221,3 +257,42 @@ async def run_evaluation(fixture_dir: str) -> EvaluationRunResponse:
         passed_readability=passed_readability,
         passed_safety=passed_safety,
     )
+
+
+async def generate_suggestions(
+    transcript_name: str,
+    category: str,
+    eval_result: dict,
+    fixture_dir: str,
+) -> list[str]:
+    """Call Claude to generate improvement suggestions for an eval result."""
+    import anthropic
+    from app.prompts.eval_suggestions import build_suggestion_prompt
+
+    fixture_path = Path(fixture_dir) / transcript_name
+    transcript_text = fixture_path.read_text() if fixture_path.exists() else ""
+
+    prompt = build_suggestion_prompt(category, eval_result, transcript_text)
+
+    client = anthropic.AsyncAnthropic()
+    response = await client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1024,
+        temperature=0.3,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    text = response.content[0].text
+    # Parse numbered/bulleted suggestions into a list
+    suggestions = []
+    for line in text.strip().split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        # Strip leading bullets/numbers
+        cleaned = re.sub(r"^[\d]+[.)]\s*", "", line)
+        cleaned = re.sub(r"^[-*]\s*", "", cleaned)
+        if cleaned and len(cleaned) > 10:
+            suggestions.append(cleaned)
+
+    return suggestions if suggestions else [text]

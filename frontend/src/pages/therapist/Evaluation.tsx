@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/api/client'
 import { consumeSSE } from '@/lib/sse'
@@ -14,11 +14,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import EvalTranscriptSheet from './EvalTranscriptSheet'
+import EvalDetailDialog from './EvalDetailDialog'
 
 // Evaluation-specific types (not shared globally)
 interface ReadabilityScores {
   flesch_kincaid_grade: number
-  [key: string]: number
+  flesch_reading_ease?: number
+  gunning_fog?: number
+  avg_sentence_length?: number
+  avg_word_length?: number
+  [key: string]: number | undefined
 }
 
 interface StructuralResult {
@@ -45,12 +51,25 @@ interface SafetyResult {
   passed: boolean
 }
 
+interface SafetyFlagDetail {
+  flag_type: string
+  severity: string
+  description?: string
+  transcript_excerpt?: string
+  line_start?: number
+  line_end?: number
+}
+
 interface TranscriptEvalResult {
   transcript_name: string
   structural: StructuralResult
   readability: ReadabilityResult
   safety?: SafetyResult
   generation_time_seconds: number
+  therapist_content?: Record<string, unknown> | null
+  client_content?: Record<string, unknown> | null
+  transcript_text?: string | null
+  safety_flags_detail?: SafetyFlagDetail[] | null
 }
 
 interface EvaluationRunResponse {
@@ -63,7 +82,20 @@ interface EvaluationRunResponse {
   passed_safety: number
 }
 
-function PassIcon({ pass }: { pass: boolean }) {
+type EvalCategory = 'structural' | 'readability' | 'safety'
+
+function PassIcon({ pass, onClick }: { pass: boolean; onClick?: () => void }) {
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className="cursor-pointer rounded px-1 transition-colors hover:bg-slate-100"
+        title="Click for details"
+      >
+        <span className={pass ? 'text-green-600' : 'text-red-500'}>{pass ? '✅' : '❌'}</span>
+      </button>
+    )
+  }
   return <span className={pass ? 'text-green-600' : 'text-red-500'}>{pass ? '✅' : '❌'}</span>
 }
 
@@ -71,7 +103,33 @@ function GradeCell({ value }: { value: number }) {
   return <span>{value.toFixed(1)}</span>
 }
 
-function ResultTables({ run }: { run: EvaluationRunResponse }) {
+function TranscriptNameCell({
+  name,
+  onClick,
+}: {
+  name: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="cursor-pointer font-mono text-sm text-blue-600 underline decoration-blue-300 underline-offset-2 transition-colors hover:text-blue-800"
+      title="Click to view transcript and plan"
+    >
+      {name}
+    </button>
+  )
+}
+
+function ResultTables({
+  run,
+  onTranscriptClick,
+  onDetailClick,
+}: {
+  run: EvaluationRunResponse
+  onTranscriptClick: (result: TranscriptEvalResult) => void
+  onDetailClick: (result: TranscriptEvalResult, category: EvalCategory) => void
+}) {
   const safetyRows = run.results.filter((r) => r.safety != null)
 
   return (
@@ -98,23 +156,38 @@ function ResultTables({ run }: { run: EvaluationRunResponse }) {
             <TableBody>
               {run.results.map((r) => (
                 <TableRow key={r.transcript_name}>
-                  <TableCell className="pl-6 font-mono text-sm text-slate-700">
-                    {r.transcript_name}
+                  <TableCell className="pl-6">
+                    <TranscriptNameCell name={r.transcript_name} onClick={() => onTranscriptClick(r)} />
                   </TableCell>
                   <TableCell className="text-center">
-                    <PassIcon pass={r.structural.missing_fields.length === 0 && r.structural.errors.length === 0} />
+                    <PassIcon
+                      pass={r.structural.missing_fields.length === 0 && r.structural.errors.length === 0}
+                      onClick={() => onDetailClick(r, 'structural')}
+                    />
                   </TableCell>
                   <TableCell className="text-center">
-                    <PassIcon pass={r.structural.citation_bounds_valid} />
+                    <PassIcon
+                      pass={r.structural.citation_bounds_valid}
+                      onClick={() => onDetailClick(r, 'structural')}
+                    />
                   </TableCell>
                   <TableCell className="text-center">
-                    <PassIcon pass={r.structural.jargon_found.length === 0} />
+                    <PassIcon
+                      pass={r.structural.jargon_found.length === 0}
+                      onClick={() => onDetailClick(r, 'structural')}
+                    />
                   </TableCell>
                   <TableCell className="text-center">
-                    <PassIcon pass={!r.structural.risk_data_found} />
+                    <PassIcon
+                      pass={!r.structural.risk_data_found}
+                      onClick={() => onDetailClick(r, 'structural')}
+                    />
                   </TableCell>
                   <TableCell className="text-center">
-                    <PassIcon pass={r.structural.valid} />
+                    <PassIcon
+                      pass={r.structural.valid}
+                      onClick={() => onDetailClick(r, 'structural')}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -145,8 +218,8 @@ function ResultTables({ run }: { run: EvaluationRunResponse }) {
             <TableBody>
               {run.results.map((r) => (
                 <TableRow key={r.transcript_name}>
-                  <TableCell className="pl-6 font-mono text-sm text-slate-700">
-                    {r.transcript_name}
+                  <TableCell className="pl-6">
+                    <TranscriptNameCell name={r.transcript_name} onClick={() => onTranscriptClick(r)} />
                   </TableCell>
                   <TableCell className="text-center">
                     <GradeCell value={r.readability.therapist_scores.flesch_kincaid_grade} />
@@ -155,13 +228,22 @@ function ResultTables({ run }: { run: EvaluationRunResponse }) {
                     <GradeCell value={r.readability.client_scores.flesch_kincaid_grade} />
                   </TableCell>
                   <TableCell className="text-center">
-                    <PassIcon pass={r.readability.client_grade_ok} />
+                    <PassIcon
+                      pass={r.readability.client_grade_ok}
+                      onClick={() => onDetailClick(r, 'readability')}
+                    />
                   </TableCell>
                   <TableCell className="text-center">
-                    <PassIcon pass={r.readability.separation_ok} />
+                    <PassIcon
+                      pass={r.readability.separation_ok}
+                      onClick={() => onDetailClick(r, 'readability')}
+                    />
                   </TableCell>
                   <TableCell className="text-center">
-                    <PassIcon pass={r.readability.target_met} />
+                    <PassIcon
+                      pass={r.readability.target_met}
+                      onClick={() => onDetailClick(r, 'readability')}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -191,13 +273,16 @@ function ResultTables({ run }: { run: EvaluationRunResponse }) {
               <TableBody>
                 {safetyRows.map((r) => (
                   <TableRow key={r.transcript_name}>
-                    <TableCell className="pl-6 font-mono text-sm text-slate-700">
-                      {r.transcript_name}
+                    <TableCell className="pl-6">
+                      <TranscriptNameCell name={r.transcript_name} onClick={() => onTranscriptClick(r)} />
                     </TableCell>
                     <TableCell className="text-center">{r.safety!.expected_flags}</TableCell>
                     <TableCell className="text-center">{r.safety!.detected_flags}</TableCell>
                     <TableCell className="text-center">
-                      <PassIcon pass={r.safety!.passed} />
+                      <PassIcon
+                        pass={r.safety!.passed}
+                        onClick={() => onDetailClick(r, 'safety')}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -242,9 +327,20 @@ function ResultTables({ run }: { run: EvaluationRunResponse }) {
 
 export default function Evaluation() {
   const [isRunning, setIsRunning] = useState(false)
-  const [progressMessage, setProgressMessage] = useState('')
+  const [logs, setLogs] = useState<string[]>([])
   const [liveResult, setLiveResult] = useState<EvaluationRunResponse | null>(null)
   const [runError, setRunError] = useState<string | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const logsEndRef = useRef<HTMLDivElement>(null)
+
+  // Sheet state — transcript/plan viewer
+  const [sheetResult, setSheetResult] = useState<TranscriptEvalResult | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+
+  // Dialog state — detail viewer
+  const [detailResult, setDetailResult] = useState<TranscriptEvalResult | null>(null)
+  const [detailCategory, setDetailCategory] = useState<EvalCategory | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
 
   const { data: pastResults, isLoading: loadingPast } = useQuery<EvaluationRunResponse[]>({
     queryKey: ['evaluation-results'],
@@ -259,22 +355,49 @@ export default function Evaluation() {
   // The result to display: live result takes priority over most recent past
   const displayResult = liveResult ?? mostRecentPast
 
+  // Auto-scroll logs to bottom when new logs are added
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [logs])
+
+  function handleTranscriptClick(result: TranscriptEvalResult) {
+    setSheetResult(result)
+    setSheetOpen(true)
+  }
+
+  function handleDetailClick(result: TranscriptEvalResult, category: EvalCategory) {
+    setDetailResult(result)
+    setDetailCategory(category)
+    setDetailOpen(true)
+  }
+
   async function handleRunEvaluation() {
     setIsRunning(true)
     setRunError(null)
     setLiveResult(null)
-    setProgressMessage('Starting evaluation run...')
+    setLogs(['Starting evaluation run...'])
+    abortControllerRef.current = new AbortController()
 
     try {
       await consumeSSE('/api/evaluation/run', {
         method: 'POST',
+        signal: abortControllerRef.current.signal,
         onEvent: (event) => {
           if (event.event === 'progress') {
             try {
               const data = JSON.parse(event.data) as { message: string }
-              setProgressMessage(data.message)
+              setLogs((prev) => [...prev, data.message])
             } catch {
-              setProgressMessage(event.data)
+              setLogs((prev) => [...prev, event.data])
+            }
+          } else if (event.event === 'log') {
+            try {
+              const data = JSON.parse(event.data) as { message: string }
+              setLogs((prev) => [...prev, data.message])
+            } catch {
+              setLogs((prev) => [...prev, event.data])
             }
           } else if (event.event === 'complete') {
             try {
@@ -284,7 +407,14 @@ export default function Evaluation() {
               setRunError('Failed to parse evaluation result.')
             }
             setIsRunning(false)
-            setProgressMessage('')
+          } else if (event.event === 'stopped') {
+            try {
+              const data = JSON.parse(event.data) as { message: string }
+              setLogs((prev) => [...prev, data.message])
+            } catch {
+              setLogs((prev) => [...prev, event.data])
+            }
+            setIsRunning(false)
           } else if (event.event === 'error') {
             try {
               const errData = JSON.parse(event.data) as { message: string }
@@ -293,21 +423,33 @@ export default function Evaluation() {
               setRunError(event.data)
             }
             setIsRunning(false)
-            setProgressMessage('')
           }
         },
         onError: (err) => {
-          setRunError(err.message || 'Connection lost during evaluation.')
-          setIsRunning(false)
-          setProgressMessage('')
+          if (err.name !== 'AbortError') {
+            setRunError(err.message || 'Connection lost during evaluation.')
+            setIsRunning(false)
+          }
         },
       })
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      setRunError(message)
-      setIsRunning(false)
-      setProgressMessage('')
+      if (!(err instanceof Error && err.name === 'AbortError')) {
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        setRunError(message)
+        setIsRunning(false)
+      }
     }
+  }
+
+  async function handleStop() {
+    // Call backend stop endpoint
+    try {
+      await api.post('/api/evaluation/stop', {})
+    } catch (err) {
+      console.error('Failed to stop evaluation:', err)
+    }
+    // Abort the fetch
+    abortControllerRef.current?.abort()
   }
 
   return (
@@ -320,27 +462,48 @@ export default function Evaluation() {
             transcripts.
           </p>
         </div>
-        <Button
-          onClick={handleRunEvaluation}
-          disabled={isRunning}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          {isRunning ? (
-            <span className="flex items-center gap-2">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              Running...
-            </span>
-          ) : (
-            'Run Evaluation'
+        <div className="flex gap-2">
+          <Button
+            onClick={handleRunEvaluation}
+            disabled={isRunning}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isRunning ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Running...
+              </span>
+            ) : (
+              'Run Evaluation'
+            )}
+          </Button>
+          {isRunning && (
+            <Button
+              onClick={handleStop}
+              variant="outline"
+              className="text-red-600 hover:bg-red-50"
+            >
+              Stop
+            </Button>
           )}
-        </Button>
+        </div>
       </div>
 
-      {/* Progress message while running */}
-      {isRunning && progressMessage && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="pt-4 pb-4">
-            <p className="text-sm text-blue-700">{progressMessage}</p>
+      {/* Logs panel while running */}
+      {isRunning && logs.length > 0 && (
+        <Card className="border-slate-200 bg-slate-900">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-slate-300">Evaluation Progress</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="max-h-48 overflow-y-auto bg-slate-950 p-3">
+              {logs.map((line, i) => (
+                <p key={i} className="text-xs text-slate-300 font-mono">
+                  {line}
+                </p>
+              ))}
+              <div ref={logsEndRef} />
+            </div>
           </CardContent>
         </Card>
       )}
@@ -373,7 +536,28 @@ export default function Evaluation() {
       )}
 
       {/* Results tables */}
-      {displayResult && <ResultTables run={displayResult} />}
+      {displayResult && (
+        <ResultTables
+          run={displayResult}
+          onTranscriptClick={handleTranscriptClick}
+          onDetailClick={handleDetailClick}
+        />
+      )}
+
+      {/* Transcript/Plan Sheet */}
+      <EvalTranscriptSheet
+        result={sheetResult}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
+
+      {/* Detail Dialog */}
+      <EvalDetailDialog
+        category={detailCategory}
+        result={detailResult}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   )
 }
