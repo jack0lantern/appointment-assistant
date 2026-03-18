@@ -1,11 +1,17 @@
-# GitLab CI/CD → Build image → Push to GitLab Container Registry → Trigger Railway deploy
-# Railway pulls from registry (configure in Railway: Deploy from image)
+# GitLab CI/CD → Build image → Push to GitLab Container Registry → Update Railway + Deploy
+#
+# On container startup (see Dockerfile): migrations → seed (idempotent) → uvicorn
 #
 # GitLab CI/CD variables (Settings → CI/CD → Variables, all masked):
 #   RAILWAY_TOKEN  - No Team token from https://railway.app/account/tokens
 #   RAILWAY_ENV_ID - Environment ID (Railway: Cmd/Ctrl+K → Copy Environment ID)
 #
-# Railway: Add GitLab registry credentials (Pro plan) + configure image URL
+# Railway one-time setup:
+#   1. Create service with "Deploy from Docker image" source
+#   2. Add GitLab registry credentials (Pro plan): Settings → Registry Credentials
+#      - Username: GitLab username or deploy token
+#      - Password: Personal access token with read_registry scope
+#   3. Set SVC_ID below to your service ID (Cmd/Ctrl+K → Copy Service ID)
 
 stages:
   - build
@@ -37,10 +43,17 @@ railway-deploy:
   image: curlimages/curl:latest
   needs: [build-and-push]
   script:
+    # Step 1: Update Railway service source image to the newly built GitLab image
     - |
-      curl -sS -X POST https://backboard.railway.app/graphql/v2 \
+      curl -sS -f -X POST https://backboard.railway.app/graphql/v2 \
         -H "Authorization: Bearer $RAILWAY_TOKEN" \
         -H "Content-Type: application/json" \
-        -d "{\"query\":\"mutation serviceInstanceDeploy($serviceId: String!, $environmentId: String!) { serviceInstanceDeploy(serviceId: $serviceId, environmentId: $environmentId) }\",\"variables\":{\"serviceId\":\"$SVC_ID\",\"environmentId\":\"$RAILWAY_ENV_ID\"}}"
+        -d "{\"query\":\"mutation ServiceInstanceUpdate($serviceId: String!, $environmentId: String!, $input: ServiceInstanceUpdateInput!) { serviceInstanceUpdate(serviceId: $serviceId, environmentId: $environmentId, input: $input) }\",\"variables\":{\"serviceId\":\"$SVC_ID\",\"environmentId\":\"$RAILWAY_ENV_ID\",\"input\":{\"source\":{\"image\":\"$IMAGE_TAG\"}}}}"
+    # Step 2: Trigger deployment with the new image (DeployV2 pulls updated tag)
+    - |
+      curl -sS -f -X POST https://backboard.railway.app/graphql/v2 \
+        -H "Authorization: Bearer $RAILWAY_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"query\":\"mutation serviceInstanceDeployV2($serviceId: String!, $environmentId: String!) { serviceInstanceDeployV2(serviceId: $serviceId, environmentId: $environmentId) }\",\"variables\":{\"serviceId\":\"$SVC_ID\",\"environmentId\":\"$RAILWAY_ENV_ID\"}}"
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
