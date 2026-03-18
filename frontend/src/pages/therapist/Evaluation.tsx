@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/api/client'
-import { consumeSSE } from '@/lib/sse'
+import { consumeSSE, type SSEEvent } from '@/lib/sse'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -384,7 +384,7 @@ export default function Evaluation() {
       await consumeSSE('/api/evaluation/run', {
         method: 'POST',
         signal: abortControllerRef.current.signal,
-        onEvent: (event) => {
+        onEvent: (event: SSEEvent) => {
           if (event.event === 'progress') {
             try {
               const data = JSON.parse(event.data) as { message: string }
@@ -425,7 +425,7 @@ export default function Evaluation() {
             setIsRunning(false)
           }
         },
-        onError: (err) => {
+        onError: (err: Error) => {
           if (err.name !== 'AbortError') {
             setRunError(err.message || 'Connection lost during evaluation.')
             setIsRunning(false)
@@ -445,7 +445,7 @@ export default function Evaluation() {
     // Call backend stop endpoint
     try {
       await api.post('/api/evaluation/stop', {})
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to stop evaluation:', err)
     }
     // Abort the fetch
