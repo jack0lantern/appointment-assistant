@@ -1,8 +1,11 @@
 import axios from 'axios'
 
-const api = axios.create({
-  baseURL: 'http://localhost:8000',
-})
+// Dev: backend on localhost. Prod: same origin (backend serves frontend)
+const baseURL =
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.DEV ? 'http://localhost:8000' : '')
+
+const api = axios.create({ baseURL })
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
