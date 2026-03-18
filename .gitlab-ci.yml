@@ -1,0 +1,46 @@
+# GitLab CI/CD → Build image → Push to GitLab Container Registry → Trigger Railway deploy
+# Railway pulls from registry (configure in Railway: Deploy from image)
+#
+# GitLab CI/CD variables (Settings → CI/CD → Variables, all masked):
+#   RAILWAY_TOKEN  - No Team token from https://railway.app/account/tokens
+#   RAILWAY_ENV_ID - Environment ID (Railway: Cmd/Ctrl+K → Copy Environment ID)
+#
+# Railway: Add GitLab registry credentials (Pro plan) + configure image URL
+
+stages:
+  - build
+  - deploy
+
+variables:
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+  SVC_ID: "a72c8bc5-eba6-4fbc-9e11-a4772215a974"
+
+build-and-push:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $IMAGE_TAG -t $IMAGE_LATEST .
+    - docker push $IMAGE_TAG
+    - docker push $IMAGE_LATEST
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+railway-deploy:
+  stage: deploy
+  image: curlimages/curl:latest
+  needs: [build-and-push]
+  script:
+    - |
+      curl -sS -X POST https://backboard.railway.app/graphql/v2 \
+        -H "Authorization: Bearer $RAILWAY_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"query\":\"mutation serviceInstanceDeploy($serviceId: String!, $environmentId: String!) { serviceInstanceDeploy(serviceId: $serviceId, environmentId: $environmentId) }\",\"variables\":{\"serviceId\":\"$SVC_ID\",\"environmentId\":\"$RAILWAY_ENV_ID\"}}"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

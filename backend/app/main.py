@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -7,8 +6,9 @@ from dotenv import load_dotenv
 # Load .env from backend/ exclusively
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.config import settings
 
@@ -62,3 +62,21 @@ app.include_router(evaluation_router)
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# ── Static frontend (SPA) ───────────────────────────────────────────────────
+# Serves built frontend when static/ exists (Docker). Skips when absent (dev).
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    """Serve static files or index.html for SPA routing."""
+    if not STATIC_DIR.exists():
+        raise HTTPException(404)
+    if full_path.startswith("api/"):
+        raise HTTPException(404)
+    file_path = (STATIC_DIR / full_path).resolve()
+    if file_path.is_file() and file_path.is_relative_to(STATIC_DIR.resolve()):
+        return FileResponse(file_path)
+    return FileResponse(STATIC_DIR / "index.html")
