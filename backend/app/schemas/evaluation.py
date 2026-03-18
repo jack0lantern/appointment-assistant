@@ -1,5 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
+from typing import Any
 from pydantic import BaseModel
 
 
@@ -44,6 +45,11 @@ class TranscriptEvalResult(BaseModel):
     readability: ReadabilityResult
     safety: SafetyDetectionResult | None = None
     generation_time_seconds: float
+    # Plan content (optional — absent in old stored results)
+    therapist_content: dict[str, Any] | None = None
+    client_content: dict[str, Any] | None = None
+    transcript_text: str | None = None
+    safety_flags_detail: list[dict[str, Any]] | None = None
 
 
 class EvaluationRunResponse(BaseModel):
@@ -57,3 +63,13 @@ class EvaluationRunResponse(BaseModel):
     # Keep these for backward compat
     structural: StructuralValidationResult | None = None
     readability: ReadabilityResult | None = None
+
+
+class SuggestionRequest(BaseModel):
+    transcript_name: str
+    category: str  # "structural" | "readability" | "safety"
+    eval_result: dict[str, Any]
+
+
+class SuggestionResponse(BaseModel):
+    suggestions: list[str]
