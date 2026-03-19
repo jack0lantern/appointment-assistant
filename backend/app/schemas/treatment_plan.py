@@ -2,6 +2,13 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class DraftPlanSummary(BaseModel):
+    plan_id: int
+    client_id: int
+    client_name: str
+    created_at: datetime
+
+
 class Citation(BaseModel):
     line_start: int
     line_end: int

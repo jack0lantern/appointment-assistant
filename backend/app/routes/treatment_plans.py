@@ -15,12 +15,43 @@ from app.models.user import User
 from app.schemas.safety import SafetyFlagResponse
 from app.schemas.treatment_plan import (
     DiffResponse,
+    DraftPlanSummary,
     PlanEditRequest,
     TreatmentPlanResponse,
     VersionResponse,
 )
 
 router = APIRouter(tags=["treatment_plans"])
+
+
+# ── Draft plans for therapist dashboard ──────────────────────────────────────
+@router.get("/api/treatment-plans/draft", response_model=list[DraftPlanSummary])
+async def list_draft_plans(
+    therapist_user: User = Depends(require_therapist),
+    db: AsyncSession = Depends(get_db),
+):
+    therapist = therapist_user.therapist_profile
+    if therapist is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Therapist profile not found")
+
+    result = await db.execute(
+        select(TreatmentPlan)
+        .where(
+            TreatmentPlan.therapist_id == therapist.id,
+            TreatmentPlan.status == "draft",
+        )
+        .order_by(TreatmentPlan.created_at.asc())
+    )
+    plans = result.scalars().all()
+    return [
+        DraftPlanSummary(
+            plan_id=p.id,
+            client_id=p.client_id,
+            client_name=p.client.name,
+            created_at=p.created_at,
+        )
+        for p in plans
+    ]
 
 
 # ── GET current plan for a client ────────────────────────────────────────────

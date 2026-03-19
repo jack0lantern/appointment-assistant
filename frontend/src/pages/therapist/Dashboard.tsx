@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { ClientProfile } from '@/types'
+import type { ClientProfile, DraftPlanSummary } from '@/types'
 import api from '@/api/client'
 import ClientCard from '@/components/therapist/ClientCard'
 import { Button } from '@/components/ui/button'
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [showAddForm, setShowAddForm] = useState(false)
   const [newClientName, setNewClientName] = useState('')
@@ -16,6 +18,14 @@ export default function Dashboard() {
     queryKey: ['clients'],
     queryFn: async () => {
       const { data } = await api.get<ClientProfile[]>('/api/clients')
+      return data
+    },
+  })
+
+  const { data: draftPlans } = useQuery<DraftPlanSummary[]>({
+    queryKey: ['draftPlans'],
+    queryFn: async () => {
+      const { data } = await api.get<DraftPlanSummary[]>('/api/treatment-plans/draft')
       return data
     },
   })
@@ -66,8 +76,39 @@ export default function Dashboard() {
     )
   }
 
+  const hasDraftPlans = draftPlans !== undefined && draftPlans.length > 0
+  const allSubmitted = draftPlans !== undefined && draftPlans.length === 0 && (clients?.length ?? 0) > 0
+
   return (
     <div className="space-y-6">
+      {(hasDraftPlans || allSubmitted) && (
+        <div>
+          <h2 className="mb-3 text-lg font-semibold text-slate-900">Pending Plans</h2>
+          {allSubmitted ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-green-200 bg-green-50 py-8 text-center">
+              <span className="text-3xl">🎉</span>
+              <p className="mt-2 font-semibold text-green-800">All plans submitted!</p>
+              <p className="mt-1 text-sm text-green-600">Every client has received their treatment plan.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+              {draftPlans!.map((plan) => (
+                <button
+                  key={plan.plan_id}
+                  className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-slate-50"
+                  onClick={() => navigate(`/therapist/clients/${plan.client_id}`)}
+                >
+                  <span className="font-medium text-slate-900">{plan.client_name}</span>
+                  <span className="text-sm text-slate-500">
+                    {new Date(plan.created_at).toLocaleDateString()}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Clients</h1>

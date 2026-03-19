@@ -5,6 +5,9 @@ export interface LoginResponse { token: string; user: User }
 // Client (the patient entity, not HTTP client)
 export interface ClientProfile { id: number; name: string; therapist_id: number; session_count?: number; last_session_date?: string; has_safety_flags?: boolean }
 
+// Draft plan summary for therapist dashboard
+export interface DraftPlanSummary { plan_id: number; client_id: number; client_name: string; created_at: string }
+
 // Session
 export interface Session { id: number; client_id: number; therapist_id: number; session_date: string; session_number: number; duration_minutes: number; status: string; summary?: SessionSummary }
 export interface SessionSummary { therapist_summary: string; client_summary: string; key_themes: string[] }
