@@ -9,7 +9,7 @@ class EvaluationRun(Base):
     __tablename__ = "evaluation_runs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    run_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    run_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     results: Mapped[dict] = mapped_column(JSONB, nullable=False)
     overall_pass: Mapped[bool] = mapped_column(default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

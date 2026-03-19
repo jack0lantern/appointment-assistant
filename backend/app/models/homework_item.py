@@ -16,7 +16,7 @@ class HomeworkItem(TimestampMixin, Base):
     client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     completed: Mapped[bool] = mapped_column(Boolean, default=False)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     treatment_plan_version: Mapped["TreatmentPlanVersion"] = relationship(  # noqa: F821

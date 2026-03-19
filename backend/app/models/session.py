@@ -12,7 +12,7 @@ class Session(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     therapist_id: Mapped[int] = mapped_column(ForeignKey("therapists.id"), nullable=False)
     client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"), nullable=False)
-    session_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    session_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     session_number: Mapped[int] = mapped_column(Integer, default=1)
     duration_minutes: Mapped[int] = mapped_column(Integer, default=50)
     status: Mapped[str] = mapped_column(String(50), default="completed")

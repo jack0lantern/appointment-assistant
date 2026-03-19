@@ -22,7 +22,7 @@ class SafetyFlag(TimestampMixin, Base):
     line_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source: Mapped[str] = mapped_column(String(50), default="regex")
     acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
-    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     acknowledged_by: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"), nullable=True
     )
