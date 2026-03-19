@@ -16,11 +16,18 @@ from app.seed import main as seed_database
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Seed database on startup
-    try:
-        await seed_database()
-    except Exception as e:
-        print(f"Warning: Failed to seed database: {e}")
+    import asyncio
+
+    for attempt in range(3):
+        try:
+            await seed_database()
+            break
+        except Exception as e:
+            if attempt < 2:
+                print(f"Seed attempt {attempt + 1} failed: {e}, retrying in 2s...")
+                await asyncio.sleep(2)
+            else:
+                print(f"Warning: Failed to seed database after 3 attempts: {e}")
     yield
 
 

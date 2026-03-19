@@ -18,4 +18,4 @@ COPY --from=frontend /app/dist ./static
 ENV PORT=8000
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head && python -m app.seed && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "timeout 30 alembic upgrade head 2>&1 || echo 'WARN: migration failed or timed out'; exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
