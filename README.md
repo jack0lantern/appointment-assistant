@@ -100,6 +100,59 @@ npm run dev
 
 ---
 
+## Deploy to Railway
+
+Deploy directly from GitHub with automatic deployments on push.
+
+### 1. Create a Railway project
+
+1. Go to [railway.app](https://railway.app) and sign in with GitHub.
+2. Click **New Project** → **Deploy from GitHub repo**.
+3. Select this repository and choose the branch to deploy (e.g. `main`).
+
+### 2. Add PostgreSQL
+
+1. In the project, click **+ New** → **Database** → **PostgreSQL**.
+2. Railway provisions PostgreSQL and exposes `DATABASE_URL` (and related vars) to other services.
+
+### 3. Add the app service
+
+1. Click **+ New** → **GitHub Repo** and select this repo again (or add a new service from the same repo).
+2. Railway detects the root `Dockerfile` and `railway.json` and builds the full-stack app (frontend + backend).
+
+### 4. Configure variables
+
+In the app service → **Variables**, add or reference:
+
+| Variable | Source | Notes |
+|----------|--------|-------|
+| `DATABASE_URL` | Reference from Postgres service | Use `${{Postgres.DATABASE_URL}}` (Railway injects it; app converts to `postgresql+asyncpg://` automatically) |
+| `ANTHROPIC_API_KEY` | Your key | Required for AI plan generation |
+| `JWT_SECRET` | Random string | Use a strong secret in production |
+| `CORS_ORIGINS` | Your app URL | e.g. `https://your-app.up.railway.app` |
+
+### 5. Connect Postgres to the app
+
+1. In the app service → **Variables** → **Add Variable** → **Add Reference**.
+2. Select the Postgres service and `DATABASE_URL`.
+
+### 6. Generate a domain
+
+1. In the app service → **Settings** → **Networking** → **Generate Domain**.
+2. Your app will be available at `https://<service>-<project>.up.railway.app`.
+
+### 7. Update CORS
+
+After generating the domain, set `CORS_ORIGINS` to include it, e.g.:
+
+```
+https://your-app-name.up.railway.app
+```
+
+**Auto-deploy:** Pushes to the connected branch trigger new deployments. Configure the trigger branch in **Service Settings** → **Source**.
+
+---
+
 ## AI System Design
 
 ### Two-Stage Pipeline
