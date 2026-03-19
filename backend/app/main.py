@@ -11,10 +11,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from app.config import settings
+from app.seed import main as seed_database
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Seed database on startup
+    try:
+        await seed_database()
+    except Exception as e:
+        print(f"Warning: Failed to seed database: {e}")
     yield
 
 

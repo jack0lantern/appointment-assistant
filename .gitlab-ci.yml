@@ -1,6 +1,7 @@
 # GitLab CI/CD → Build image → Push to GitLab Container Registry → Update Railway + Deploy
 #
 # On container startup (see Dockerfile): migrations → seed (idempotent) → uvicorn
+# Seeding also happens automatically on FastAPI startup (lifespan hook)
 #
 # GitLab CI/CD variables (Settings → CI/CD → Variables, all masked):
 #   RAILWAY_TOKEN  - No Team token from https://railway.app/account/tokens
