@@ -261,6 +261,160 @@ def test_si_probe_present_no_omission_flag():
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Substance crisis: behavioral indicator detection (Recommendation 1)
+# ---------------------------------------------------------------------------
+
+
+def test_blackout_without_from_drinking_triggers_flag():
+    """A blackout report should flag even without 'from drinking' qualifier."""
+    lines = [
+        "Client: I blacked out for about four hours last weekend.",
+    ]
+    flags = _safety_risk_flags(scan_transcript_for_safety(lines, []))
+    flag_types = _flag_types(flags)
+    assert "substance_crisis" in flag_types
+
+
+def test_escalating_frequency_triggers_flag():
+    """Escalating drinking frequency should flag substance crisis."""
+    lines = [
+        "Client: It used to be just weekends but now I'm drinking four or five times a week.",
+    ]
+    flags = _safety_risk_flags(scan_transcript_for_safety(lines, []))
+    flag_types = _flag_types(flags)
+    assert "substance_crisis" in flag_types
+
+
+def test_high_quantity_drinking_triggers_flag():
+    """Consuming 6+ drinks in a session should flag substance crisis."""
+    lines = [
+        "Client: When I go out I have like six or seven drinks plus a few shots.",
+    ]
+    flags = _safety_risk_flags(scan_transcript_for_safety(lines, []))
+    flag_types = _flag_types(flags)
+    assert "substance_crisis" in flag_types
+
+
+def test_resumed_use_after_harmful_event_triggers_flag():
+    """Returning to use shortly after a self-identified harmful event should flag."""
+    lines = [
+        "Client: Two days after the blackout I started drinking again.",
+    ]
+    flags = _safety_risk_flags(scan_transcript_for_safety(lines, []))
+    flag_types = _flag_types(flags)
+    assert "substance_crisis" in flag_types
+
+
+def test_found_unconscious_triggers_flag():
+    """Being found unconscious/passed out should flag substance crisis."""
+    lines = [
+        "Client: They found me passed out in my car.",
+    ]
+    flags = _safety_risk_flags(scan_transcript_for_safety(lines, []))
+    flag_types = _flag_types(flags)
+    assert "substance_crisis" in flag_types
+
+
+# ---------------------------------------------------------------------------
+# Substance crisis: blackout as standalone high-severity trigger (Rec 2)
+# ---------------------------------------------------------------------------
+
+
+def test_blackout_is_high_severity():
+    """A blackout report should be at least high severity."""
+    lines = [
+        "Client: I blacked out for about four hours.",
+    ]
+    flags = _safety_risk_flags(scan_transcript_for_safety(lines, []))
+    substance_flags = [f for f in flags if f.flag_type.value == "substance_crisis"]
+    assert len(substance_flags) >= 1
+    assert any(f.severity.value in ("high", "critical") for f in substance_flags)
+
+
+# ---------------------------------------------------------------------------
+# Substance crisis: cross-domain co-occurrence (Recommendation 3)
+# ---------------------------------------------------------------------------
+
+
+def test_substance_multi_domain_signals_flag():
+    """Signals from different substance risk dimensions should co-occur to flag.
+
+    This transcript has: blackout (medical harm) + emotional dependency (psych)
+    + escalating frequency (behavioral control loss) — 3 distinct dimensions.
+    """
+    lines = [
+        "Therapist: Tell me about your drinking.",
+        "Client: I've been drinking more and more. Four or five times a week now.",
+        "Client: Last weekend I blacked out for about four hours.",
+        "Client: It's the only thing that helps me not think about losing her.",
+    ]
+    flags = _safety_risk_flags(scan_transcript_for_safety(lines, []))
+    substance_flags = [f for f in flags if f.flag_type.value == "substance_crisis"]
+    # Should detect multiple distinct substance signals
+    assert len(substance_flags) >= 2
+
+
+# ---------------------------------------------------------------------------
+# Substance safety screen absence (Recommendation 4)
+# ---------------------------------------------------------------------------
+
+
+def test_substance_screen_absent_when_escalation_and_blackout():
+    """When substance escalation + blackout are present and therapist
+    does not conduct substance safety screen, flag clinician omission."""
+    lines = [
+        "Therapist: How has your week been?",
+        "Client: I've been drinking more, like four or five times a week.",
+        "Client: Last weekend I blacked out for about four hours.",
+        "Client: They found me passed out in my car.",
+        "Client: I started drinking again two days later.",
+        "Therapist: Let's talk about some coping strategies.",
+    ]
+    flags = scan_transcript_for_safety(lines, [])
+    omission_flags = _clinician_omission_flags(flags)
+    substance_omissions = [f for f in omission_flags if f.flag_type.value == "substance_screen_absent"]
+    assert len(substance_omissions) == 1
+
+
+def test_substance_screen_present_no_omission():
+    """When therapist conducts substance safety screen, no omission flag."""
+    lines = [
+        "Therapist: How has your week been?",
+        "Client: I've been drinking more, like four or five times a week.",
+        "Client: Last weekend I blacked out for about four hours.",
+        "Therapist: Have you ever felt you needed to cut down on your drinking?",
+        "Client: Maybe, I don't know.",
+    ]
+    flags = scan_transcript_for_safety(lines, [])
+    omission_flags = _clinician_omission_flags(flags)
+    substance_omissions = [f for f in omission_flags if f.flag_type.value == "substance_screen_absent"]
+    assert len(substance_omissions) == 0
+
+
+# ---------------------------------------------------------------------------
+# Minimizing language should not suppress behavioral evidence (Rec 1)
+# ---------------------------------------------------------------------------
+
+
+def test_minimizing_language_does_not_suppress_flag():
+    """Client minimizing ('I'm fine', 'pretty normal') should not override
+    objective behavioral indicators of substance crisis."""
+    lines = [
+        "Client: I'm fine, it's pretty normal for me.",
+        "Client: I usually have about six or seven beers when I go out.",
+        "Client: I blacked out last weekend but I'm fine now.",
+    ]
+    flags = _safety_risk_flags(scan_transcript_for_safety(lines, []))
+    substance_flags = [f for f in flags if f.flag_type.value == "substance_crisis"]
+    assert len(substance_flags) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Integration: depression transcript should not produce false positive safety flags
+# ---------------------------------------------------------------------------
+
+
 def test_standard_depression_session_no_safety_risk_flags():
     """A standard depression assessment (like depression.txt) should produce
     zero safety_risk flags — only clinical observations and possibly

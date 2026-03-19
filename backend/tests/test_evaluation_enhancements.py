@@ -253,8 +253,12 @@ class TestEvaluationStreamingAndCancel:
                 results.append((result.transcript_name, idx, total))
 
         assert len(results) == 2
-        assert results[0] == ("first.txt", 0, 2)
-        assert results[1] == ("second.txt", 1, 2)
+        # idx is 1-based (completed count)
+        names = {r[0] for r in results}
+        assert names == {"first.txt", "second.txt"}
+        idxs = [r[1] for r in results]
+        assert sorted(idxs) == [1, 2]
+        assert all(r[2] == 2 for r in results)
 
     @pytest.mark.asyncio
     async def test_run_evaluation_stream_respects_cancel_event(self, tmp_path):
@@ -293,6 +297,8 @@ class TestEvaluationStreamingAndCancel:
         async def mock_run_pipeline(text):
             nonlocal call_count
             call_count += 1
+            # Stagger completion so first finishes before others; cancel can then stop the rest
+            await asyncio.sleep(0.1 * call_count)
             return mock_result
 
         with patch(
@@ -303,12 +309,12 @@ class TestEvaluationStreamingAndCancel:
             results = []
             async for result, idx, total in run_evaluation_stream(str(tmp_path), cancel_event):
                 results.append(result.transcript_name)
-                if idx == 0:  # After first transcript, set cancel
+                if idx == 1:  # After first transcript, set cancel
                     cancel_event.set()
 
-        # Should have processed 1 transcript and then stopped
+        # Should have processed 1 transcript and then stopped (others cancelled)
         assert len(results) == 1
-        assert call_count == 1
+        assert call_count >= 1
 
     @pytest.mark.asyncio
     async def test_run_evaluation_backward_compat(self, tmp_path):

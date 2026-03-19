@@ -10,6 +10,7 @@ class FlagType(str, Enum):
     substance_crisis = "substance_crisis"
     severe_distress = "severe_distress"
     si_screen_absent = "si_screen_absent"
+    substance_screen_absent = "substance_screen_absent"
 
 
 class FlagCategory(str, Enum):

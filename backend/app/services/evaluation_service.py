@@ -8,7 +8,7 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Literal
 
 from app.schemas.evaluation import (
     EvaluationRunResponse,
@@ -18,6 +18,20 @@ from app.schemas.evaluation import (
     TranscriptEvalResult,
 )
 from app.utils.readability import compute_readability
+
+EvalSection = Literal["structural", "readability", "safety"]
+
+# Placeholder for sections not evaluated in a section-only run
+_EMPTY_READABILITY = ReadabilityResult(
+    therapist_scores=compute_readability(""),
+    client_scores=compute_readability(""),
+    client_grade_ok=False,
+    separation_ok=False,
+    flesch_reading_ease=0.0,
+    flesch_kincaid_grade=0.0,
+    gunning_fog=0.0,
+    target_met=False,
+)
 
 # Clinical jargon that must NOT appear in client-facing content
 CLINICAL_JARGON = [
@@ -181,12 +195,20 @@ async def _run_pipeline_with_retry(transcript_text: str, max_retries: int = 5):
             delay = min(delay * 2, 60.0)
 
 
-async def _eval_one_transcript(txt_file: Path) -> TranscriptEvalResult:
-    """Evaluate a single transcript file; catches all errors into the result."""
+async def _eval_one_transcript(
+    txt_file: Path,
+    sections: list[EvalSection] | None = None,
+) -> TranscriptEvalResult:
+    """Evaluate a single transcript file; catches all errors into the result.
+
+    When sections is provided, only compute those sections. Other sections get
+    placeholders (caller should merge with previous run for section-only display).
+    """
     transcript_text = txt_file.read_text()
     transcript_lines = transcript_text.splitlines()
     t0 = time.time()
     tc = cc = safety_flags_detail = None
+    compute_all = sections is None
 
     try:
         pipeline_result = await _run_pipeline_with_retry(transcript_text)
@@ -194,15 +216,33 @@ async def _eval_one_transcript(txt_file: Path) -> TranscriptEvalResult:
         tc = pipeline_result.therapist_content.model_dump()
         cc = pipeline_result.client_content.model_dump()
         safety_flags_detail = [f.model_dump() for f in pipeline_result.safety_flags]
-        structural = validate_plan_structure(tc, cc, transcript_lines)
-        readability = analyze_readability(tc, cc)
-        # Only count safety_risk flags for pass/fail evaluation;
-        # clinical_observation and clinician_omission are informational.
-        safety_risk_count = sum(
-            1 for f in pipeline_result.safety_flags
-            if f.category.value == "safety_risk"
-        )
-        safety = check_safety_detection(safety_risk_count, txt_file.name)
+
+        if compute_all or "structural" in (sections or []):
+            structural = validate_plan_structure(tc, cc, transcript_lines)
+        else:
+            structural = StructuralValidationResult(
+                valid=False,
+                missing_fields=[],
+                errors=[],
+                jargon_found=[],
+                risk_data_found=False,
+                citation_bounds_valid=True,
+            )
+
+        if compute_all or "readability" in (sections or []):
+            readability = analyze_readability(tc, cc)
+        else:
+            readability = _EMPTY_READABILITY
+
+        if compute_all or "safety" in (sections or []):
+            safety_risk_count = sum(
+                1 for f in pipeline_result.safety_flags
+                if f.category.value == "safety_risk"
+            )
+            safety = check_safety_detection(safety_risk_count, txt_file.name)
+        else:
+            safety = None
+
     except Exception as exc:
         elapsed = time.time() - t0
         structural = StructuralValidationResult(
@@ -233,24 +273,59 @@ async def _eval_one_transcript(txt_file: Path) -> TranscriptEvalResult:
     )
 
 
+def _merge_section_result(
+    new_result: TranscriptEvalResult,
+    section: EvalSection,
+    previous: dict[str, TranscriptEvalResult],
+) -> TranscriptEvalResult:
+    """Merge new section result with previous run's other sections."""
+    prev = previous.get(new_result.transcript_name)
+    if not prev:
+        return new_result
+
+    structural = new_result.structural if section == "structural" else prev.structural
+    readability = new_result.readability if section == "readability" else prev.readability
+    safety = new_result.safety if section == "safety" else prev.safety
+
+    return TranscriptEvalResult(
+        transcript_name=new_result.transcript_name,
+        structural=structural,
+        readability=readability,
+        safety=safety,
+        generation_time_seconds=new_result.generation_time_seconds,
+        therapist_content=new_result.therapist_content or prev.therapist_content,
+        client_content=new_result.client_content or prev.client_content,
+        transcript_text=new_result.transcript_text or prev.transcript_text,
+        safety_flags_detail=new_result.safety_flags_detail or prev.safety_flags_detail,
+    )
+
+
 async def run_evaluation_stream(
     fixture_dir: str,
     cancel_event: asyncio.Event,
+    sections: list[EvalSection] | None = None,
+    previous_results: dict[str, TranscriptEvalResult] | None = None,
 ) -> AsyncGenerator[tuple[TranscriptEvalResult, int, int], None]:
     """
     Async generator that yields (result, completed_count, total) for each transcript.
     All transcripts run in parallel; results are yielded as each one finishes.
     Respects cancel_event by cancelling pending tasks.
+
+    When sections is provided, only compute those sections. If previous_results is
+    provided, merge new section results with previous run for display.
     """
     fixture_path = Path(fixture_dir)
     txt_files = sorted(fixture_path.glob("*.txt"))
     total = len(txt_files)
+    section_only = sections is not None and len(sections) == 1
+    section = sections[0] if section_only else None
+    prev_map = previous_results or {}
 
     if total == 0:
         return
 
     pending: set[asyncio.Task] = {
-        asyncio.create_task(_eval_one_transcript(f))
+        asyncio.create_task(_eval_one_transcript(f, sections=sections))
         for f in txt_files
     }
     received = 0
@@ -273,6 +348,8 @@ async def run_evaluation_stream(
             except Exception:
                 # CancelledError or truly unexpected — skip
                 continue
+            if section_only and section and prev_map:
+                result = _merge_section_result(result, section, prev_map)
             yield result, received, total
 
 

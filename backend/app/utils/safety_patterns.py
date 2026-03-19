@@ -126,10 +126,30 @@ RISK_PATTERNS: dict[FlagType, list[tuple[re.Pattern, Severity, str]]] = {
         ),
     ],
     FlagType.substance_crisis: [
+        # --- Tier 1: Standalone high-severity triggers (Rec 2) ---
+        # Blackout events: any reported blackout is a medical safety event.
+        (
+            re.compile(
+                r"\b(black(ed)?\s+out|blacked\s+out)",
+                re.IGNORECASE,
+            ),
+            Severity.high,
+            "Blackout episode reported — standalone acute substance safety event",
+        ),
+        # Found unconscious / passed out (medical harm dimension)
+        (
+            re.compile(
+                r"\b(found\s+(me|him|her|them)\s+(passed\s+out|unconscious)|"
+                r"passed\s+out\s+(in|on|at)\s+(my|the|a))",
+                re.IGNORECASE,
+            ),
+            Severity.high,
+            "Loss of consciousness reported — acute substance safety event",
+        ),
+        # --- Original high-severity patterns ---
         (
             re.compile(
                 r"\b(overdos(e|ed|ing)|"
-                r"black(ed)?\s+out\s+(from|after)\s+(drink|drug|using)|"
                 r"can\'?t\s+stop\s+(drink|using|taking)|"
                 r"withdraw(al|ing)|"
                 r"(drink|us)(ing|ed)\s+(every\s+day|all\s+day|constantly|non[- ]?stop)|"
@@ -141,6 +161,48 @@ RISK_PATTERNS: dict[FlagType, list[tuple[re.Pattern, Severity, str]]] = {
             Severity.high,
             "Substance use crisis indicators detected",
         ),
+        # --- Behavioral indicators (Rec 1): escalation, quantity, resumed use ---
+        # Escalating frequency
+        (
+            re.compile(
+                r"\b(drinking|using)\s+.{0,30}(four|five|six|seven|4|5|6|7)\s+(or\s+\w+\s+)?times\s+a\s+week",
+                re.IGNORECASE,
+            ),
+            Severity.high,
+            "Escalating substance use frequency detected",
+        ),
+        # High quantity per session (6+ drinks)
+        (
+            re.compile(
+                r"\b(six|seven|eight|nine|ten|6|7|8|9|10|\d{2,})\s+(or\s+\w+\s+)?(drink|beer|shot|glass|wine|cocktail)s?",
+                re.IGNORECASE,
+            ),
+            Severity.high,
+            "High-quantity substance use reported",
+        ),
+        # Resumed use after harmful event
+        (
+            re.compile(
+                r"\b(start(ed)?\s+(drinking|using)\s+again|"
+                r"went\s+back\s+to\s+(drinking|using)|"
+                r"(drank|used)\s+again\s+.{0,20}(after|later|next\s+day))",
+                re.IGNORECASE,
+            ),
+            Severity.high,
+            "Resumed substance use after harmful event",
+        ),
+        # Emotional dependency / using to cope
+        (
+            re.compile(
+                r"\b(only\s+thing\s+that\s+(helps|works|numbs|stops)|"
+                r"drink(ing)?\s+to\s+(forget|cope|numb|not\s+think|not\s+feel|deal\s+with)|"
+                r"(need|have)\s+to\s+(drink|use)\s+(when|because|after))",
+                re.IGNORECASE,
+            ),
+            Severity.medium,
+            "Emotional dependency on substance use",
+        ),
+        # --- Original medium-severity patterns ---
         (
             re.compile(
                 r"\b(mixing\s+(drugs|medications|pills)|"
@@ -296,6 +358,30 @@ SI_PROBE_PATTERNS: list[re.Pattern] = [
 
 
 # ---------------------------------------------------------------------------
+# Substance safety screen patterns — therapist conducting AUDIT/CAGE/screen
+# ---------------------------------------------------------------------------
+# If the therapist uses any of these patterns, we consider that a structured
+# substance use safety screen was conducted. Checked against therapist lines.
+SUBSTANCE_PROBE_PATTERNS: list[re.Pattern] = [
+    re.compile(
+        r"\b(cut\s+down\s+on\s+(your\s+)?drinking|"
+        r"AUDIT|CAGE|"
+        r"how\s+much\s+(are\s+you|do\s+you)\s+(drink|us)|"
+        r"concern(ed)?\s+about\s+(your\s+)?(drinking|alcohol|substance|drug|use)|"
+        r"(think|feel|felt)\s+.{0,10}(need|should)\s+(to\s+)?(cut\s+down|stop|quit|reduce)|"
+        r"withdrawal\s+(symptom|sign|risk)|"
+        r"driv(e|ing)\s+(after|while|when)\s+(drinking|using)|"
+        r"safe(ty)?\s+(plan|screen|check|assessment)\s+.{0,20}(substance|alcohol|drug|drinking))",
+        re.IGNORECASE,
+    ),
+]
+
+# Minimum number of distinct substance risk signals required to trigger
+# substance_screen_absent clinician omission flag.
+SUBSTANCE_SIGNAL_THRESHOLD = 2
+
+
+# ---------------------------------------------------------------------------
 # Convergence: medium-severity distress signals that require co-occurrence
 # ---------------------------------------------------------------------------
 # Medium-severity severe_distress flags require at least this many distinct
@@ -365,6 +451,16 @@ def _therapist_conducted_si_probe(lines: list[str]) -> bool:
     for line in lines:
         if _is_therapist_line(line):
             for pat in SI_PROBE_PATTERNS:
+                if pat.search(line):
+                    return True
+    return False
+
+
+def _therapist_conducted_substance_probe(lines: list[str]) -> bool:
+    """Check if the therapist conducted a substance use safety screen."""
+    for line in lines:
+        if _is_therapist_line(line):
+            for pat in SUBSTANCE_PROBE_PATTERNS:
                 if pat.search(line):
                     return True
     return False
@@ -533,6 +629,35 @@ def scan_transcript_for_safety(
                     f"Multi-symptom depressive presentation detected "
                     f"({', '.join(symptom_categories_found)}) but no direct "
                     f"suicidal ideation screen was conducted by the therapist."
+                ),
+                transcript_excerpt="",
+                line_start=1,
+                line_end=len(lines),
+                source="regex",
+                category=FlagCategory.clinician_omission,
+            )
+        )
+
+    # --- Substance safety screen absence detection (Rec 4) ---
+    # Count distinct substance_crisis safety_risk flags as signal dimensions.
+    substance_safety_flags = [
+        f for f in results
+        if f.flag_type == FlagType.substance_crisis
+        and f.category == FlagCategory.safety_risk
+    ]
+    if (
+        len(substance_safety_flags) >= SUBSTANCE_SIGNAL_THRESHOLD
+        and not _therapist_conducted_substance_probe(lines)
+    ):
+        results.append(
+            SafetyFlagData(
+                flag_type=FlagType.substance_screen_absent,
+                severity=Severity.medium,
+                description=(
+                    f"Substance crisis signals detected "
+                    f"({len(substance_safety_flags)} distinct indicators) but no "
+                    f"structured substance use safety screen was conducted by "
+                    f"the therapist."
                 ),
                 transcript_excerpt="",
                 line_start=1,

@@ -18,6 +18,7 @@ from app.schemas.evaluation import (
     EvaluationRunResponse,
     SuggestionRequest,
     SuggestionResponse,
+    TranscriptEvalResult,
 )
 
 router = APIRouter(prefix="/api/evaluation", tags=["evaluation"])
@@ -53,6 +54,20 @@ def _create_run_handler(section: EvalSection | None):
 
         label = SECTION_LABELS.get(section, "evaluation") if section else "evaluation"
 
+        # For section-only runs, load previous run to merge results
+        sections_list: list[EvalSection] | None = [section] if section else None
+        previous_map: dict[str, TranscriptEvalResult] = {}
+        if section:
+            result = await db.execute(
+                select(EvaluationRun)
+                .order_by(EvaluationRun.run_at.desc())
+                .limit(1)
+            )
+            run = result.scalar_one_or_none()
+            if run and run.results:
+                resp = EvaluationRunResponse(**run.results)
+                previous_map = {r.transcript_name: r for r in resp.results}
+
         async def event_stream():
             global _cancel_event
             cancel = asyncio.Event()
@@ -62,7 +77,12 @@ def _create_run_handler(section: EvalSection | None):
             try:
                 yield _sse_event("progress", {"message": f"Starting {label}..."})
 
-                async for result, idx, total in run_evaluation_stream(FIXTURE_DIR, cancel):
+                async for result, idx, total in run_evaluation_stream(
+                    FIXTURE_DIR,
+                    cancel,
+                    sections=sections_list,
+                    previous_results=previous_map if previous_map else None,
+                ):
                     results.append(result)
                     status = "✅" if result.structural.valid else "❌"
                     log_msg = f"{status} {result.transcript_name} — {result.generation_time_seconds}s"
