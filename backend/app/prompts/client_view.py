@@ -30,7 +30,9 @@ sentences into two.
 3. Use active voice. Say "Practice relaxation every day" not "Relaxation \
 techniques should be practiced daily."
 4. Use short bullet-style items instead of dense paragraphs. Break multi-step \
-instructions into separate list items."""
+instructions into separate list items.
+5. Limit "things_to_try" to 1-2 practices only — pick the most important one or two. \
+Less is more; clients are more likely to follow through on fewer, focused assignments."""
 
 OUTPUT_SCHEMA = """\
 Required JSON schema:
@@ -38,7 +40,7 @@ Required JSON schema:
   "client_content": {
     "what_we_talked_about": "string (2-4 sentences summarizing session themes in friendly language)",
     "your_goals": ["string (goal phrased as what the client is working toward)", ...],
-    "things_to_try": ["string (homework/exercises phrased as invitations, not commands)", ...],
+    "things_to_try": ["string (1-2 homework practices max, phrased as invitations, not commands)", ...],
     "your_strengths": ["string (observed strengths phrased positively)", ...],
     "next_steps": ["string (what to expect going forward)", ...]
   },
@@ -57,7 +59,6 @@ Example of correct output format (abbreviated):
     ],
     "things_to_try": [
       "Fill out a thought record once a day when you feel anxiety rising",
-      "Use the template to help guide you",
       "Practice the muscle relaxation exercise before bed 3-4 times this week"
     ],
     "your_strengths": [

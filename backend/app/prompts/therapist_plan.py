@@ -13,6 +13,8 @@ Rules:
 - Interventions should reference evidence-based therapeutic modalities (CBT, DBT, ACT, etc.).
 - Use professional clinical language appropriate for a therapist audience.
 - If information is insufficient for a field, use "Insufficient data" rather than fabricating content.
+- Be concise. Therapists must be able to scan this plan in under 2 minutes. Use short bullet phrases, not full sentences. Each item should be 10 words or fewer where possible.
+- Homework MUST be limited to 1-2 key practices only. Choose the most impactful assignments.
 - Respond ONLY with valid JSON matching the schema below. No markdown, no commentary."""
 
 # Truncated few-shot example showing correct citation format
