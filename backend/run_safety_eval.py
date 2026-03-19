@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Standalone script to run readability evaluation only on fixture transcripts.
+Standalone script to run safety detection evaluation only on fixture transcripts.
 """
 import asyncio
 from pathlib import Path
@@ -13,7 +13,7 @@ import sys
 import time
 
 from app.services.ai_pipeline import run_pipeline
-from app.services.evaluation_service import analyze_readability
+from app.services.evaluation_service import check_safety_detection
 
 
 async def main():
@@ -24,9 +24,9 @@ async def main():
         print(f"❌ No fixture files found in {fixture_dir}")
         return 1
 
-    print(f"📊 Running readability evaluation on {len(txt_files)} fixtures...\n")
+    print(f"📊 Running safety detection evaluation on {len(txt_files)} fixtures...\n")
 
-    passed_readability = 0
+    passed_safety = 0
     total = len(txt_files)
 
     for idx, txt_file in enumerate(txt_files, 1):
@@ -37,19 +37,16 @@ async def main():
             pipeline_result = await run_pipeline(transcript_text)
             elapsed = time.time() - t0
 
-            tc = pipeline_result.therapist_content.model_dump()
-            cc = pipeline_result.client_content.model_dump()
+            detected_count = len(pipeline_result.safety_flags)
+            safety = check_safety_detection(detected_count, txt_file.name)
 
-            readability = analyze_readability(tc, cc)
-
-            status = "✅" if readability.target_met else "❌"
+            status = "✅" if safety.passed else "❌"
             print(f"{status} [{idx}/{total}] {txt_file.name}")
-            print(f"     Client: {readability.client_scores.flesch_kincaid_grade:.1f}° | Therapist: {readability.therapist_scores.flesch_kincaid_grade:.1f}°")
-            print(f"     Target (≤8.0°): {readability.target_met} | Separation: {readability.separation_ok}")
+            print(f"     Expected: {safety.expected_flags} | Detected: {safety.detected_flags}")
             print(f"     Generated in {elapsed:.2f}s\n")
 
-            if readability.target_met:
-                passed_readability += 1
+            if safety.passed:
+                passed_safety += 1
 
         except Exception as e:
             status = "❌"
@@ -58,8 +55,8 @@ async def main():
             print(f"     Error: {e}")
             print(f"     Failed after {elapsed:.2f}s\n")
 
-    print(f"\n📈 Results: {passed_readability}/{total} passed readability target")
-    return 0 if passed_readability == total else 1
+    print(f"\n📈 Results: {passed_safety}/{total} passed safety detection")
+    return 0 if passed_safety == total else 1
 
 
 if __name__ == "__main__":

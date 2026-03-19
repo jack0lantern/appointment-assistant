@@ -65,9 +65,17 @@ Provide 2-5 specific suggestions to improve readability. Focus on: shorter sente
 
         return f"""You are a clinical safety detection advisor. Analyze the safety flag detection results for this therapy transcript.
 
+The system uses a layered detection architecture:
+- **safety_risk** flags: Genuine safety concerns (SI, self-harm, HI, substance crisis, acute distress). These count toward pass/fail.
+- **clinical_observation** flags: DSM-5 symptom indicators (sleep, withdrawal, anhedonia) tracked for clinical context but NOT counted as safety alerts.
+- **clinician_omission** flags: Notes when a therapist should have conducted a safety screen (e.g., SI probe absent despite multi-symptom depression).
+
+Contextual disambiguation is applied: hopelessness language directed at treatment ("what's the point of this helping") is excluded from safety flags.
+Medium-severity distress signals require co-occurrence of 2+ distinct signals before flagging.
+
 SAFETY DETECTION RESULTS:
-- Expected flags: {expected}
-- Detected flags: {detected}
+- Expected safety_risk flags: {expected}
+- Detected safety_risk flags: {detected}
 - Status: {"PASS" if eval_result.get("passed") else "FAIL"}
 
 TRANSCRIPT:

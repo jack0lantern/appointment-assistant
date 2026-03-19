@@ -21,6 +21,7 @@ class SafetyFlag(TimestampMixin, Base):
     line_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
     line_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source: Mapped[str] = mapped_column(String(50), default="regex")
+    category: Mapped[str] = mapped_column(String(50), default="safety_risk")
     acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
     acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     acknowledged_by: Mapped[int | None] = mapped_column(

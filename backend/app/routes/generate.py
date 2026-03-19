@@ -130,6 +130,7 @@ async def generate_treatment_plan(
                     line_start=sf.line_start,
                     line_end=sf.line_end,
                     source=sf.source,
+                    category=sf.category.value if hasattr(sf.category, "value") else sf.category,
                 )
                 db.add(flag)
 

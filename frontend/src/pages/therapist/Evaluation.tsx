@@ -125,10 +125,18 @@ function ResultTables({
   run,
   onTranscriptClick,
   onDetailClick,
+  onRunStructural,
+  onRunReadability,
+  onRunSafety,
+  isRunning,
 }: {
   run: EvaluationRunResponse
   onTranscriptClick: (result: TranscriptEvalResult) => void
   onDetailClick: (result: TranscriptEvalResult, category: EvalCategory) => void
+  onRunStructural: () => void
+  onRunReadability: () => void
+  onRunSafety: () => void
+  isRunning: boolean
 }) {
   const safetyRows = run.results.filter((r) => r.safety != null)
 
@@ -137,9 +145,27 @@ function ResultTables({
       {/* Table A — Structural Validation */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-slate-800">
-            Structural Validation
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold text-slate-800">
+              Structural Validation
+            </CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onRunStructural}
+              disabled={isRunning}
+              className="shrink-0"
+            >
+              {isRunning ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
+                  Running...
+                </span>
+              ) : (
+                'Run Structural'
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -199,9 +225,27 @@ function ResultTables({
       {/* Table B — Readability */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-slate-800">
-            Readability
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold text-slate-800">
+              Readability
+            </CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onRunReadability}
+              disabled={isRunning}
+              className="shrink-0"
+            >
+              {isRunning ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
+                  Running...
+                </span>
+              ) : (
+                'Run Readability'
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -256,9 +300,27 @@ function ResultTables({
       {safetyRows.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold text-slate-800">
-              Safety Detection
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold text-slate-800">
+                Safety Detection
+              </CardTitle>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onRunSafety}
+                disabled={isRunning}
+                className="shrink-0"
+              >
+                {isRunning ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
+                    Running...
+                  </span>
+                ) : (
+                  'Run Safety'
+                )}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -373,7 +435,7 @@ export default function Evaluation() {
     setDetailOpen(true)
   }
 
-  async function handleRunEvaluation() {
+  async function runEval(path: string) {
     setIsRunning(true)
     setRunError(null)
     setLiveResult(null)
@@ -381,7 +443,7 @@ export default function Evaluation() {
     abortControllerRef.current = new AbortController()
 
     try {
-      await consumeSSE('/api/evaluation/run', {
+      await consumeSSE(path, {
         method: 'POST',
         signal: abortControllerRef.current.signal,
         onEvent: (event: SSEEvent) => {
@@ -427,7 +489,7 @@ export default function Evaluation() {
         },
         onError: (err: Error) => {
           if (err.name !== 'AbortError') {
-            setRunError(err.message || 'Connection lost during evaluation.')
+            setRunError(err.message ?? 'Connection lost during evaluation.')
             setIsRunning(false)
           }
         },
@@ -441,14 +503,20 @@ export default function Evaluation() {
     }
   }
 
+  const handleRunEvaluation = () => runEval('/api/evaluation/run')
+  const handleRunStructural = () => runEval('/api/evaluation/run/structural')
+  const handleRunReadability = () => runEval('/api/evaluation/run/readability')
+  const handleRunSafety = () => runEval('/api/evaluation/run/safety')
+
   async function handleStop() {
+    setIsRunning(false)
     // Call backend stop endpoint
     try {
       await api.post('/api/evaluation/stop', {})
     } catch (err: unknown) {
       console.error('Failed to stop evaluation:', err)
     }
-    // Abort the fetch
+    // Abort the fetch (cleans up the SSE connection)
     abortControllerRef.current?.abort()
   }
 
@@ -541,6 +609,10 @@ export default function Evaluation() {
           run={displayResult}
           onTranscriptClick={handleTranscriptClick}
           onDetailClick={handleDetailClick}
+          onRunStructural={handleRunStructural}
+          onRunReadability={handleRunReadability}
+          onRunSafety={handleRunSafety}
+          isRunning={isRunning}
         />
       )}
 

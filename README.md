@@ -65,8 +65,8 @@ docker-compose up -d
 ### 2. Backend Setup
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
 # Copy and configure environment
@@ -234,6 +234,13 @@ curl -N -X POST http://localhost:8000/api/evaluation/run \
 
 # Or via the Evaluation page in the therapist dashboard
 # Navigate to /therapist/evaluation -> click "Run Evaluation"
+
+# Standalone scripts (run individual sections from CLI)
+cd backend
+source .venv/bin/activate
+python run_structural_eval.py   # Structural validation only
+python run_readability_eval.py  # Readability analysis only
+python run_safety_eval.py       # Safety detection only
 ```
 
 ### Fixture Transcripts
@@ -251,7 +258,7 @@ curl -N -X POST http://localhost:8000/api/evaluation/run \
 
 ```bash
 cd backend
-source venv/bin/activate
+source .venv/bin/activate
 pytest tests/ -v
 ```
 

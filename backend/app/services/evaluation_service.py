@@ -147,6 +147,11 @@ def check_safety_detection(
     detected_flag_count: int,
     transcript_name: str,
 ) -> SafetyDetectionResult:
+    """Check safety detection results.
+
+    Only safety_risk category flags count toward pass/fail evaluation.
+    Clinical observations and clinician omissions are informational.
+    """
     expected = EXPECTED_FLAGS.get(transcript_name, 0)
     if expected == 0:
         passed = detected_flag_count == 0
@@ -160,75 +165,115 @@ def check_safety_detection(
     )
 
 
+async def _run_pipeline_with_retry(transcript_text: str, max_retries: int = 5):
+    """Run AI pipeline with exponential backoff on RateLimitError."""
+    import anthropic
+    from app.services.ai_pipeline import run_pipeline
+
+    delay = 2.0
+    for attempt in range(max_retries):
+        try:
+            return await run_pipeline(transcript_text)
+        except anthropic.RateLimitError:
+            if attempt == max_retries - 1:
+                raise
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, 60.0)
+
+
+async def _eval_one_transcript(txt_file: Path) -> TranscriptEvalResult:
+    """Evaluate a single transcript file; catches all errors into the result."""
+    transcript_text = txt_file.read_text()
+    transcript_lines = transcript_text.splitlines()
+    t0 = time.time()
+    tc = cc = safety_flags_detail = None
+
+    try:
+        pipeline_result = await _run_pipeline_with_retry(transcript_text)
+        elapsed = time.time() - t0
+        tc = pipeline_result.therapist_content.model_dump()
+        cc = pipeline_result.client_content.model_dump()
+        safety_flags_detail = [f.model_dump() for f in pipeline_result.safety_flags]
+        structural = validate_plan_structure(tc, cc, transcript_lines)
+        readability = analyze_readability(tc, cc)
+        # Only count safety_risk flags for pass/fail evaluation;
+        # clinical_observation and clinician_omission are informational.
+        safety_risk_count = sum(
+            1 for f in pipeline_result.safety_flags
+            if f.category.value == "safety_risk"
+        )
+        safety = check_safety_detection(safety_risk_count, txt_file.name)
+    except Exception as exc:
+        elapsed = time.time() - t0
+        structural = StructuralValidationResult(
+            valid=False, errors=[f"Pipeline error: {exc}"]
+        )
+        readability = ReadabilityResult(
+            therapist_scores=compute_readability(""),
+            client_scores=compute_readability(""),
+            client_grade_ok=False,
+            separation_ok=False,
+            flesch_reading_ease=0.0,
+            flesch_kincaid_grade=0.0,
+            gunning_fog=0.0,
+            target_met=False,
+        )
+        safety = None
+
+    return TranscriptEvalResult(
+        transcript_name=txt_file.name,
+        structural=structural,
+        readability=readability,
+        safety=safety,
+        generation_time_seconds=round(elapsed, 2),
+        therapist_content=tc,
+        client_content=cc,
+        transcript_text=transcript_text,
+        safety_flags_detail=safety_flags_detail,
+    )
+
+
 async def run_evaluation_stream(
     fixture_dir: str,
     cancel_event: asyncio.Event,
 ) -> AsyncGenerator[tuple[TranscriptEvalResult, int, int], None]:
     """
-    Async generator that yields (result, current_index, total) for each transcript.
-    Checks cancel_event before processing each transcript and stops if set.
+    Async generator that yields (result, completed_count, total) for each transcript.
+    All transcripts run in parallel; results are yielded as each one finishes.
+    Respects cancel_event by cancelling pending tasks.
     """
-    from app.services.ai_pipeline import run_pipeline
-
     fixture_path = Path(fixture_dir)
     txt_files = sorted(fixture_path.glob("*.txt"))
     total = len(txt_files)
 
-    for idx, txt_file in enumerate(txt_files):
-        # Check if cancelled before processing next transcript
+    if total == 0:
+        return
+
+    pending: set[asyncio.Task] = {
+        asyncio.create_task(_eval_one_transcript(f))
+        for f in txt_files
+    }
+    received = 0
+
+    while pending:
         if cancel_event.is_set():
-            break
+            for task in pending:
+                task.cancel()
+            await asyncio.gather(*pending, return_exceptions=True)
+            return
 
-        transcript_text = txt_file.read_text()
-        transcript_lines = transcript_text.splitlines()
-        t0 = time.time()
-
-        tc = None
-        cc = None
-        safety_flags_detail = None
-
-        try:
-            pipeline_result = await run_pipeline(transcript_text)
-            elapsed = time.time() - t0
-
-            tc = pipeline_result.therapist_content.model_dump()
-            cc = pipeline_result.client_content.model_dump()
-            safety_flags_detail = [f.model_dump() for f in pipeline_result.safety_flags]
-
-            structural = validate_plan_structure(tc, cc, transcript_lines)
-            readability = analyze_readability(tc, cc)
-            safety = check_safety_detection(len(pipeline_result.safety_flags), txt_file.name)
-
-        except Exception as exc:
-            elapsed = time.time() - t0
-            structural = StructuralValidationResult(
-                valid=False, errors=[f"Pipeline error: {exc}"]
-            )
-            readability = ReadabilityResult(
-                therapist_scores=compute_readability(""),
-                client_scores=compute_readability(""),
-                client_grade_ok=False,
-                separation_ok=False,
-                flesch_reading_ease=0.0,
-                flesch_kincaid_grade=0.0,
-                gunning_fog=0.0,
-                target_met=False,
-            )
-            safety = None
-
-        result = TranscriptEvalResult(
-            transcript_name=txt_file.name,
-            structural=structural,
-            readability=readability,
-            safety=safety,
-            generation_time_seconds=round(elapsed, 2),
-            therapist_content=tc,
-            client_content=cc,
-            transcript_text=transcript_text,
-            safety_flags_detail=safety_flags_detail,
+        # Use timeout so we check cancel_event every 0.5s even when no task has completed
+        done, pending = await asyncio.wait(
+            pending, return_when=asyncio.FIRST_COMPLETED, timeout=0.5
         )
-
-        yield result, idx, total
+        for task in done:
+            received += 1
+            try:
+                result = task.result()
+            except Exception:
+                # CancelledError or truly unexpected — skip
+                continue
+            yield result, received, total
 
 
 async def run_evaluation(fixture_dir: str) -> EvaluationRunResponse:

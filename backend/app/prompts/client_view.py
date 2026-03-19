@@ -14,7 +14,23 @@ Rules:
 - Do not include diagnosis information in client-facing content.
 - Generate both a client-friendly plan AND a brief session summary for the client.
 - Also generate a therapist-facing session summary (concise, clinical language).
-- Respond ONLY with valid JSON matching the schema below. No markdown, no commentary."""
+- Respond ONLY with valid JSON matching the schema below. No markdown, no commentary.
+
+Readability rules (IMPORTANT — client content MUST score at or below 8th-grade reading level):
+1. Keep sentences short. Aim for 15 words or fewer per sentence. Break long \
+sentences into two.
+2. Use simple, everyday words. Replace clinical or multi-syllable words:
+   - "utilize" → "use"
+   - "demonstrate" → "show"
+   - "emotional dysregulation" → "strong emotions that feel out of control"
+   - "implement strategies" → "try these steps"
+   - "in conjunction with" → "along with"
+   - "modality" → "approach"
+   - "psychoeducation" → "learning about how your mind works"
+3. Use active voice. Say "Practice relaxation every day" not "Relaxation \
+techniques should be practiced daily."
+4. Use short bullet-style items instead of dense paragraphs. Break multi-step \
+instructions into separate list items."""
 
 OUTPUT_SCHEMA = """\
 Required JSON schema:
@@ -34,25 +50,26 @@ FEW_SHOT_EXAMPLE = """\
 Example of correct output format (abbreviated):
 {
   "client_content": {
-    "what_we_talked_about": "Today we explored how work stress has been affecting your sleep and overall well-being. We looked at some of the thought patterns that keep you up at night and practiced a relaxation technique together.",
+    "what_we_talked_about": "Today we talked about how work stress affects your sleep. We looked at thought patterns that keep you up at night. We also practiced a relaxation exercise together.",
     "your_goals": [
-      "Getting better sleep by learning to quiet your mind at bedtime",
-      "Building skills to manage anxious thoughts when they spiral"
+      "Sleep better by learning to quiet your mind at bedtime",
+      "Handle anxious thoughts before they spiral"
     ],
     "things_to_try": [
-      "Try filling out a thought record once a day when you notice anxiety rising — there is a template to help guide you",
-      "Practice the muscle relaxation exercise we did today before bed, aiming for 3-4 times this week"
+      "Fill out a thought record once a day when you feel anxiety rising",
+      "Use the template to help guide you",
+      "Practice the muscle relaxation exercise before bed 3-4 times this week"
     ],
     "your_strengths": [
-      "You are already noticing when your worries are bigger than the situation calls for — that is a really valuable skill",
-      "You showed openness to trying new techniques even when they felt unfamiliar"
+      "You already notice when your worries are bigger than the situation",
+      "You were open to trying new skills, even when they felt unfamiliar"
     ],
     "next_steps": [
-      "We will review your thought records together next session",
-      "We will continue building on the relaxation skills you started today"
+      "Next session, we will look at your thought records together",
+      "We will keep building on the relaxation skills you started today"
     ]
   },
-  "client_session_summary": "Great work today! We talked about how work stress has been causing sleep difficulties and practiced some new tools to help. You are already showing a lot of self-awareness, which is a great foundation.",
+  "client_session_summary": "Great work today! We talked about how work stress has hurt your sleep. We practiced some new tools to help. You are already showing a lot of self-awareness.",
   "therapist_session_summary": "Session focused on work-related anxiety and insomnia. Introduced cognitive restructuring via thought records and PMR for sleep hygiene. Client demonstrated good insight into catastrophizing patterns. Homework: daily thought record, PMR 3-4x/week."
 }"""
 

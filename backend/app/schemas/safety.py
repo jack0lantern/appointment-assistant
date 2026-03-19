@@ -9,6 +9,13 @@ class FlagType(str, Enum):
     harm_to_others = "harm_to_others"
     substance_crisis = "substance_crisis"
     severe_distress = "severe_distress"
+    si_screen_absent = "si_screen_absent"
+
+
+class FlagCategory(str, Enum):
+    safety_risk = "safety_risk"
+    clinical_observation = "clinical_observation"
+    clinician_omission = "clinician_omission"
 
 
 class Severity(str, Enum):
@@ -26,6 +33,7 @@ class SafetyFlagData(BaseModel):
     line_start: int
     line_end: int
     source: str = "regex"
+    category: FlagCategory = FlagCategory.safety_risk
 
 
 class SafetyFlagResponse(BaseModel):
@@ -39,6 +47,7 @@ class SafetyFlagResponse(BaseModel):
     line_start: int | None = None
     line_end: int | None = None
     source: str
+    category: str = "safety_risk"
     acknowledged: bool
     acknowledged_at: datetime | None = None
     acknowledged_by: int | None = None

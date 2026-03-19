@@ -1,0 +1,17 @@
+---
+description: Never create venvs; always use existing .venv
+alwaysApply: true
+---
+
+# Python Virtual Environment
+
+**Never create a new virtual environment.** This project uses `.venv` in the backend.
+
+- Do NOT run `python -m venv`, `uv venv`, `virtualenv`, or any venv creation command
+- Do NOT create `venv`, `.venv`, or any other env folder
+- Always use the existing `backend/.venv` for Python commands
+
+When running Python/pip commands in the backend, either:
+1. `cd backend && source .venv/bin/activate && <command>`, or
+2. `cd backend && .venv/bin/python -m <module>`, or
+3. `cd backend && .venv/bin/pip <args>`

@@ -4,7 +4,9 @@ Orchestrates: transcript preprocessing -> therapist plan generation (Claude) ->
 client view generation (Claude) -> safety regex scanning -> final PipelineResult.
 """
 
+import asyncio
 import json
+import json_repair
 import logging
 import os
 import time
@@ -21,7 +23,8 @@ from app.utils.safety_patterns import scan_transcript_for_safety
 
 logger = logging.getLogger(__name__)
 
-MODEL = "claude-sonnet-4-6"
+MODEL_THERAPIST = "claude-haiku-4-5-20251001" 
+MODEL_CLIENT = "claude-haiku-4-5-20251001"
 MAX_TOKENS = 4096
 
 
@@ -86,34 +89,22 @@ def _extract_json_from_text(text: str) -> str:
     return cleaned
 
 
-def _attempt_json_repair(text: str) -> str:
-    """Attempt basic JSON repair for common issues."""
-    cleaned = _extract_json_from_text(text)
-
-    # Try to find the outermost JSON object
-    brace_start = cleaned.find("{")
-    brace_end = cleaned.rfind("}")
-    if brace_start != -1 and brace_end != -1 and brace_end > brace_start:
-        cleaned = cleaned[brace_start : brace_end + 1]
-
-    # Remove trailing commas before closing braces/brackets
-    cleaned = _remove_trailing_commas(cleaned)
-
-    return cleaned
-
-
-def _remove_trailing_commas(text: str) -> str:
-    """Remove trailing commas before } or ] in JSON text."""
-    import re
-    # Remove comma followed by optional whitespace and then } or ]
-    return re.sub(r",\s*([}\]])", r"\1", text)
-
-
 def _fill_missing_fields(data: dict, schema_class: type) -> dict:
-    """Fill missing required fields with defaults."""
+    """Fill missing or invalid required fields with defaults."""
     for field_name, field_info in schema_class.model_fields.items():
-        if field_name not in data:
-            if field_info.default is not None:
+        value = data.get(field_name)
+        # Fill when missing, None, or wrong type for list fields
+        needs_fill = (
+            field_name not in data
+            or value is None
+            or (
+                hasattr(field_info.annotation, "__origin__")
+                and getattr(field_info.annotation, "__origin__", None) is list
+                and not isinstance(value, list)
+            )
+        )
+        if needs_fill:
+            if field_info.default is not None and type(field_info.default).__name__ != 'PydanticUndefinedType':
                 data[field_name] = field_info.default
             elif hasattr(field_info.annotation, "__origin__"):
                 # list types get empty list, str gets placeholder
@@ -126,6 +117,21 @@ def _fill_missing_fields(data: dict, schema_class: type) -> dict:
                 data[field_name] = "Insufficient data"
             else:
                 data[field_name] = "Insufficient data"
+
+    # Clean up citations that might be missing required fields or have invalid types
+    for field_name in list(data.keys()):
+        if field_name.endswith('_citations') and isinstance(data[field_name], list):
+            valid_citations = []
+            for item in data[field_name]:
+                if isinstance(item, dict) and 'line_start' in item and 'line_end' in item and 'text' in item:
+                    try:
+                        int(item['line_start'])
+                        int(item['line_end'])
+                        valid_citations.append(item)
+                    except (ValueError, TypeError):
+                        pass
+            data[field_name] = valid_citations
+
     return data
 
 
@@ -164,7 +170,7 @@ async def generate_therapist_plan(
     for attempt in range(2):  # Try up to 2 times
         try:
             response = await client.messages.create(
-                model=MODEL,
+                model=MODEL_THERAPIST,
                 max_tokens=MAX_TOKENS,
                 temperature=0.3,
                 system=therapist_plan.SYSTEM_PROMPT,
@@ -174,12 +180,7 @@ async def generate_therapist_plan(
             raw_text = response.content[0].text
             json_text = _extract_json_from_text(raw_text)
 
-            try:
-                data = json.loads(json_text)
-            except json.JSONDecodeError:
-                # Attempt repair
-                repaired = _attempt_json_repair(raw_text)
-                data = json.loads(repaired)
+            data = json_repair.loads(json_text)
 
             # Fill missing fields before validation
             data = _fill_missing_fields(data, TherapistPlanContent)
@@ -255,7 +256,7 @@ async def generate_client_view(
     for attempt in range(2):
         try:
             response = await client.messages.create(
-                model=MODEL,
+                model=MODEL_CLIENT,
                 max_tokens=MAX_TOKENS,
                 temperature=0.5,
                 system=client_view.SYSTEM_PROMPT,
@@ -265,11 +266,7 @@ async def generate_client_view(
             raw_text = response.content[0].text
             json_text = _extract_json_from_text(raw_text)
 
-            try:
-                data = json.loads(json_text)
-            except json.JSONDecodeError:
-                repaired = _attempt_json_repair(raw_text)
-                data = json.loads(repaired)
+            data = json_repair.loads(json_text)
 
             # Extract sub-objects
             client_content_data = data.get("client_content", data)
@@ -358,7 +355,7 @@ async def generate_plan_update(
     for attempt in range(2):
         try:
             response = await client.messages.create(
-                model=MODEL,
+                model=MODEL_THERAPIST,
                 max_tokens=MAX_TOKENS,
                 temperature=0.3,
                 system=plan_update.SYSTEM_PROMPT,
@@ -368,11 +365,7 @@ async def generate_plan_update(
             raw_text = response.content[0].text
             json_text = _extract_json_from_text(raw_text)
 
-            try:
-                data = json.loads(json_text)
-            except json.JSONDecodeError:
-                repaired = _attempt_json_repair(raw_text)
-                data = json.loads(repaired)
+            data = json_repair.loads(json_text)
 
             therapist_content_data = data.get("therapist_content", data)
             change_summary = data.get("change_summary", "Plan updated based on new session.")
@@ -497,26 +490,30 @@ async def run_pipeline(
             existing_plan=None,
         )
 
-    # Step 3: Generate client view
+    # Step 3: Generate client view (in parallel with safety scan for efficiency)
     therapist_plan_dict = therapist_content.model_dump()
-    client_content, therapist_summary, client_summary = await generate_client_view(
-        therapist_plan_data=therapist_plan_dict,
+
+    # Run client view generation and safety scan in parallel
+    async def _generate_client_view_task():
+        return await generate_client_view(therapist_plan_data=therapist_plan_dict)
+
+    async def _safety_scan_task():
+        return scan_transcript_for_safety(lines=lines, existing_ai_flags=None)
+
+    (client_content, therapist_summary, client_summary), safety_flags = await asyncio.gather(
+        _generate_client_view_task(),
+        _safety_scan_task(),
     )
 
-    # Step 4: Safety regex scan (no AI flags to deduplicate against for regex-only)
-    safety_flags: list[SafetyFlagData] = scan_transcript_for_safety(
-        lines=lines,
-        existing_ai_flags=None,
-    )
-
-    # Step 5: Extract key themes and homework
+    # Step 4: Extract key themes and homework
     key_themes = _extract_key_themes(therapist_content)
     homework_items = list(therapist_content.homework)
 
     # Calculate metadata
     elapsed = time.time() - start_time
     ai_metadata = {
-        "model": MODEL,
+        "therapist_model": MODEL_THERAPIST,
+        "client_model": MODEL_CLIENT,
         "pipeline_duration_seconds": round(elapsed, 2),
         "transcript_lines": len(lines),
         "transcript_words": sum(len(line.split()) for line in lines),
