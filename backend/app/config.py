@@ -12,6 +12,10 @@ def _ensure_asyncpg_url(url: str) -> str:
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5433/tava"
+    DATABASE_PUBLIC_URL: str | None = None
+    """Public URL for external connections (e.g. Railway TCP proxy). Use with USE_PUBLIC_DATABASE=1 to seed prod from local."""
+    USE_PUBLIC_DATABASE: bool = False
+    """When True, use DATABASE_PUBLIC_URL instead of DATABASE_URL. Required for `railway run` from local (private URL doesn't resolve)."""
     ANTHROPIC_API_KEY: str = ""
     JWT_SECRET: str = "dev-secret-key"
     CORS_ORIGINS: str = (
@@ -24,7 +28,17 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         """DATABASE_URL with postgresql:// converted to postgresql+asyncpg:// for async SQLAlchemy."""
-        return _ensure_asyncpg_url(self.DATABASE_URL)
+        url = (
+            self.DATABASE_PUBLIC_URL
+            if self.USE_PUBLIC_DATABASE and self.DATABASE_PUBLIC_URL
+            else self.DATABASE_URL
+        )
+        url = _ensure_asyncpg_url(url)
+        # Railway public URL requires SSL; asyncpg uses ssl param
+        if self.USE_PUBLIC_DATABASE and "ssl=" not in url and "sslmode=" not in url:
+            sep = "&" if "?" in url else "?"
+            url = f"{url}{sep}ssl=require"
+        return url
 
     @property
     def cors_origins_list(self) -> list[str]:

@@ -151,6 +151,20 @@ https://your-app-name.up.railway.app
 
 **Auto-deploy:** Pushes to the connected branch trigger new deployments. Configure the trigger branch in **Service Settings** → **Source**.
 
+### Seeding production from local
+
+`railway run python -m app.seed` fails with `nodename nor servname provided, or not known` because Railway injects the **private** `DATABASE_URL` (only resolvable inside Railway). Use the **public** URL instead:
+
+1. **Enable TCP Proxy** on the Postgres service: **Settings** → **Networking** → ensure Public network TCP proxy is enabled (e.g. `shuttle.proxy.rlwy.net:port → :5432`).
+
+2. **Add `DATABASE_PUBLIC_URL`** to the app service variables: **Variables** → **Add Reference** → select Postgres → `DATABASE_PUBLIC_URL`.
+
+3. **Run the seed** with the public URL:
+   ```bash
+   cd backend
+   USE_PUBLIC_DATABASE=1 railway run python -m app.seed
+   ```
+
 ---
 
 ## AI System Design
