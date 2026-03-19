@@ -74,6 +74,16 @@ def test_anger_does_not_trigger_flag():
     assert len(flags) == 0, f"False positive — anger should not flag: {flags}"
 
 
+def test_si_with_treatment_context_still_flagged():
+    """'Kill myself' should flag even when sentence references therapy/meeting."""
+    lines = [
+        "Client: I wanted to kill myself before this meeting.",
+    ]
+    flags = _safety_risk_flags(scan_transcript_for_safety(lines, []))
+    flag_types = _flag_types(flags)
+    assert "suicidal_ideation" in flag_types
+
+
 def test_historical_self_harm_triggers_flag():
     lines = [
         "Client: I used to self-harm but stopped years ago.",
@@ -116,6 +126,18 @@ def test_treatment_directed_hopelessness_not_flagged():
     distress_flags = [f for f in flags if f.flag_type.value == "severe_distress"]
     assert len(distress_flags) == 0, (
         f"Treatment-directed hopelessness should not flag: {distress_flags}"
+    )
+
+
+def test_existential_hopelessness_with_incidental_treatment_mention():
+    """Genuine distress should flag even when therapy is mentioned incidentally."""
+    lines = [
+        "Client: I feel hopeless, coming here doesn't change that nothing matters.",
+    ]
+    flags = _safety_risk_flags(scan_transcript_for_safety(lines, []))
+    distress_flags = [f for f in flags if f.flag_type.value == "severe_distress"]
+    assert len(distress_flags) > 0, (
+        "Existential hopelessness with incidental treatment mention should still flag"
     )
 
 

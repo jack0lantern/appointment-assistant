@@ -314,9 +314,27 @@ def _ranges_overlap(
     return start1 <= end2 and start2 <= end1
 
 
-def _is_treatment_context(line: str) -> bool:
-    """Return True if the line contains treatment-directed language."""
-    return any(pat.search(line) for pat in TREATMENT_CONTEXT_PATTERNS)
+_CLAUSE_BOUNDARY = re.compile(r"[,;.!?\u2014]|\s+but\s+|\s+although\s+|\s+though\s+|\s+however\s+", re.IGNORECASE)
+
+
+def _is_treatment_context(line: str, match: re.Match) -> bool:
+    """Return True if the distress match is in the same clause as treatment language.
+
+    Splits the line on clause boundaries (punctuation, conjunctions) and only
+    considers the match treatment-directed if a treatment keyword appears in the
+    same clause as the distress keyword.
+    """
+    # Find which clause the match falls in
+    boundaries = [0] + [m.end() for m in _CLAUSE_BOUNDARY.finditer(line)] + [len(line)]
+    match_start = match.start()
+
+    for i in range(len(boundaries) - 1):
+        clause_start, clause_end = boundaries[i], boundaries[i + 1]
+        if clause_start <= match_start < clause_end:
+            clause = line[clause_start:clause_end]
+            return any(pat.search(clause) for pat in TREATMENT_CONTEXT_PATTERNS)
+
+    return False
 
 
 def _is_therapist_line(line: str) -> bool:
@@ -404,8 +422,9 @@ def scan_transcript_for_safety(
                     continue
 
                 # --- Contextual exclusion (suggestion #1) ---
-                # For severe_distress, check if the line is treatment-directed.
-                if flag_type == FlagType.severe_distress and _is_treatment_context(line):
+                # For severe_distress, check if the distress match is in the
+                # same clause as treatment-directed language.
+                if flag_type == FlagType.severe_distress and _is_treatment_context(line, match):
                     continue
 
                 # --- Deduplication against existing AI flags ---
