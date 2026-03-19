@@ -6,6 +6,7 @@ alembic
 anthropic
 python-jose[cryptography]
 passlib[bcrypt]
+bcrypt<5.0
 python-multipart
 textstat
 pydantic>=2.0
