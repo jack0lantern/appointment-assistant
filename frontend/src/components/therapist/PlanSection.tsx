@@ -3,6 +3,11 @@ import type { Citation, GoalItem, InterventionItem } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardHeader, CardTitle, CardContent, CardAction } from '@/components/ui/card'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 type SectionItem = string | GoalItem | InterventionItem
 
@@ -110,9 +115,32 @@ export default function PlanSection({
           <p className="text-sm text-slate-400 italic">No data available.</p>
         ) : (
           <ul className="list-inside list-disc space-y-1 text-sm text-slate-700">
-            {items.map((item, idx) => (
-              <li key={idx}>{renderItem(item)}</li>
-            ))}
+            {items.map((item, idx) => {
+              const citation = citations[idx]
+              const lineLabel =
+                citation != null
+                  ? citation.line_start === citation.line_end
+                    ? `L${citation.line_start}`
+                    : `L${citation.line_start}–${citation.line_end}`
+                  : null
+              return (
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="flex-1">{renderItem(item)}</span>
+                  {lineLabel != null && citation != null && (
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <span className="shrink-0 cursor-help rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+                          {lineLabel}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-sm">
+                        <p className="text-sm">{citation.text}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
       </CardContent>
