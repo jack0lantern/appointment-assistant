@@ -10,12 +10,16 @@ const ClientDetail = lazy(() => import('./pages/therapist/ClientDetail'))
 const NewSession = lazy(() => import('./pages/therapist/NewSession'))
 const PlanReview = lazy(() => import('./pages/therapist/PlanReview'))
 const Evaluation = lazy(() => import('./pages/therapist/Evaluation'))
+const PreJoinScreen = lazy(() => import('./pages/therapist/PreJoinScreen'))
+const LiveSession = lazy(() => import('./pages/therapist/LiveSession'))
+const PostSessionReview = lazy(() => import('./pages/therapist/PostSessionReview'))
 
 // Client pages
 const ClientDashboard = lazy(() => import('./pages/client/Dashboard'))
 const PlanView = lazy(() => import('./pages/client/PlanView'))
 const Sessions = lazy(() => import('./pages/client/Sessions'))
 const Homework = lazy(() => import('./pages/client/Homework'))
+const JoinLiveSession = lazy(() => import('./pages/client/JoinLiveSession'))
 
 function PageLoader() {
   return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>
@@ -35,8 +39,16 @@ export default function App() {
           <Route path="/therapist/clients/:clientId" element={<ClientDetail />} />
           <Route path="/therapist/sessions/new" element={<NewSession />} />
           <Route path="/therapist/clients/:clientId/plan" element={<PlanReview />} />
+          <Route path="/therapist/clients/:clientId/live" element={<PreJoinScreen />} />
           <Route path="/therapist/evaluation" element={<Evaluation />} />
+          <Route path="/therapist/session/:sessionId/review" element={<PostSessionReview />} />
         </Route>
+
+        {/* Live session (full-screen, outside layout) */}
+        <Route path="/therapist/session/:sessionId/live" element={<LiveSession />} />
+
+        {/* Client join live session (full-screen, outside layout) */}
+        <Route path="/client/session/:sessionId/join" element={<JoinLiveSession />} />
 
         {/* Client routes */}
         <Route element={<ClientLayout />}>

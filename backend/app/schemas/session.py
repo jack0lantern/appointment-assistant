@@ -16,6 +16,8 @@ class SessionResponse(BaseModel):
     session_number: int
     duration_minutes: int
     status: str
+    session_type: str = "uploaded"
+    recording_status: str | None = None
 
     model_config = {"from_attributes": True}
 

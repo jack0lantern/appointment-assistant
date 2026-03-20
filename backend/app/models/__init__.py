@@ -10,6 +10,7 @@ from app.models.treatment_plan_version import TreatmentPlanVersion
 from app.models.safety_flag import SafetyFlag
 from app.models.homework_item import HomeworkItem
 from app.models.evaluation_run import EvaluationRun
+from app.models.recording_consent import RecordingConsent
 
 __all__ = [
     "Base",
@@ -25,4 +26,5 @@ __all__ = [
     "SafetyFlag",
     "HomeworkItem",
     "EvaluationRun",
+    "RecordingConsent",
 ]

@@ -23,6 +23,21 @@ class Settings(BaseSettings):
         "http://localhost:5174,http://127.0.0.1:5174"
     )
 
+    # LiveKit
+    LIVEKIT_URL: str = "ws://localhost:7880"
+    LIVEKIT_API_KEY: str = "devkey"
+    LIVEKIT_API_SECRET: str = "secret"
+
+    # S3 / MinIO
+    S3_ENDPOINT_URL: str = "http://localhost:9000"
+    S3_ACCESS_KEY: str = "minioadmin"
+    S3_SECRET_KEY: str = "minioadmin"
+    S3_BUCKET_RECORDINGS: str = "tava-recordings"
+    S3_REGION: str = "us-east-1"
+
+    # AssemblyAI
+    ASSEMBLYAI_API_KEY: str = ""
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @property

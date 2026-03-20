@@ -81,15 +81,27 @@ export default function ClientDetail() {
             {client.name}
           </h1>
         </div>
-        <Button
-          onClick={() =>
-            navigate('/therapist/sessions/new', {
-              state: { clientId: client.id, clientName: client.name },
-            })
-          }
-        >
-          New Session
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() =>
+              navigate(`/therapist/clients/${client.id}/live`, {
+                state: { clientId: client.id, clientName: client.name },
+              })
+            }
+          >
+            Start Live Session
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() =>
+              navigate('/therapist/sessions/new', {
+                state: { clientId: client.id, clientName: client.name },
+              })
+            }
+          >
+            Upload Transcript
+          </Button>
+        </div>
       </div>
 
       {/* Treatment Plan Summary */}
@@ -179,6 +191,7 @@ export default function ClientDetail() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Session</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Safety Flags</TableHead>
@@ -197,6 +210,11 @@ export default function ClientDetail() {
                     <TableRow key={session.id}>
                       <TableCell className="font-medium">
                         #{session.session_number}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={session.session_type === 'live' ? 'default' : 'secondary'}>
+                          {session.session_type === 'live' ? 'Live' : 'Upload'}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         {new Date(session.session_date).toLocaleDateString()}

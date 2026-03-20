@@ -59,6 +59,7 @@ from app.routes.client_routes import router as client_routes_router
 from app.routes.generate import router as generate_router
 from app.routes.test_analyze import router as test_analyze_router
 from app.routes.evaluation import router as evaluation_router
+from app.routes.live_sessions import router as live_sessions_router
 
 app.include_router(auth_router)
 app.include_router(clients_router)
@@ -70,6 +71,7 @@ app.include_router(client_routes_router)
 app.include_router(generate_router)
 app.include_router(test_analyze_router)
 app.include_router(evaluation_router)
+app.include_router(live_sessions_router)
 
 
 @app.get("/health")
