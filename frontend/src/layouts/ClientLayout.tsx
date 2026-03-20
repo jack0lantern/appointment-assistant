@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import PrivacyDisclaimer from '@/components/shared/PrivacyDisclaimer'
+import ChatWidget from '@/components/chat/ChatWidget'
 
 export default function ClientLayout() {
   const { user, logout } = useAuth()
@@ -49,6 +50,7 @@ export default function ClientLayout() {
         <Outlet />
       </main>
       <PrivacyDisclaimer />
+      <ChatWidget contextType="general" />
     </div>
   )
 }

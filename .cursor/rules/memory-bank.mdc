@@ -1,0 +1,17 @@
+---
+description: Reference the memory bank for project context
+globs: ["**/*"]
+---
+
+# Memory Bank
+
+When working in this project, use the `memory-bank/` directory for persistent context:
+
+- **projectbrief.md** — What we're building, problem, audience
+- **productContext.md** — Product flows, decisions
+- **techContext.md** — Stack, paths, env
+- **systemPatterns.md** — AI pipeline, safety, TDD, contracts
+- **activeContext.md** — Current focus (update as work changes)
+- **progress.md** — Done, in progress, backlog
+
+Update `activeContext.md` and `progress.md` when completing significant work.

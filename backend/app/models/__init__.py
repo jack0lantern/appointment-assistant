@@ -11,6 +11,7 @@ from app.models.safety_flag import SafetyFlag
 from app.models.homework_item import HomeworkItem
 from app.models.evaluation_run import EvaluationRun
 from app.models.recording_consent import RecordingConsent
+from app.models.conversation import Conversation, ConversationMessage
 
 __all__ = [
     "Base",
@@ -27,4 +28,6 @@ __all__ = [
     "HomeworkItem",
     "EvaluationRun",
     "RecordingConsent",
+    "Conversation",
+    "ConversationMessage",
 ]
