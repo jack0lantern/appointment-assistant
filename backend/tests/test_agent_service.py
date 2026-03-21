@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.services.agent_service import AgentService
 from app.schemas.agent import AgentContextType
+from app.services.agent_tools import ToolAuthContext
 from app.utils.redaction import Redactor
 
 
@@ -44,7 +45,7 @@ class TestAgentServiceRedaction:
             history=[],
             context_type=AgentContextType.onboarding,
         )
-        assert "onboarding" in system_prompt.lower() or "tava" in system_prompt.lower()
+        assert "onboarding" in system_prompt.lower()
 
     @pytest.mark.asyncio
     async def test_build_prompt_includes_history(self, service):
@@ -136,3 +137,97 @@ class TestSuggestedActions:
         assert len(actions) > 0
         labels = [a.label for a in actions]
         assert any("appointment" in l.lower() or "schedule" in l.lower() or "available" in l.lower() for l in labels)
+
+
+class TestOnboardingRedirect:
+    """Non-onboarded clients requesting scheduling should be redirected to onboarding first."""
+
+    @pytest.fixture
+    def service(self):
+        return AgentService()
+
+    @pytest.mark.asyncio
+    @patch("app.services.agent_service.AgentService._call_llm_with_tools", new_callable=AsyncMock)
+    async def test_client_without_profile_scheduling_redirects_to_onboarding(
+        self, mock_llm, service
+    ):
+        """Client with no client_profile asking to schedule gets onboarding flow + schedule CTA."""
+        mock_llm.return_value = "Let me help you get set up first. What's your name?"
+        auth = ToolAuthContext(user_id=1, role="client", client_id=None, therapist_id=None)
+
+        response = await service.process_message(
+            user_message="I'd like to book an appointment",
+            conversation_id=None,
+            context_type=AgentContextType.general,
+            user_id=1,
+            history=[],
+            auth=auth,
+            db=None,
+        )
+
+        assert response.context_type == AgentContextType.onboarding
+        labels = [a.label for a in response.suggested_actions]
+        assert any("schedule" in l.lower() for l in labels)
+
+    @pytest.mark.asyncio
+    @patch("app.services.agent_service.AgentService._call_llm_with_tools", new_callable=AsyncMock)
+    async def test_client_with_profile_scheduling_proceeds_normally(
+        self, mock_llm, service
+    ):
+        """Client with client_profile gets scheduling flow, no redirect."""
+        mock_llm.return_value = "Here are your available times: Monday 9am, Tuesday 1pm."
+        auth = ToolAuthContext(user_id=1, role="client", client_id=10, therapist_id=None)
+
+        response = await service.process_message(
+            user_message="I'd like to book an appointment",
+            conversation_id=None,
+            context_type=AgentContextType.general,
+            user_id=1,
+            history=[],
+            auth=auth,
+            db=None,
+        )
+
+        assert response.context_type == AgentContextType.scheduling
+
+    @pytest.mark.asyncio
+    @patch("app.services.agent_service.AgentService._call_llm_with_tools", new_callable=AsyncMock)
+    async def test_therapist_scheduling_no_redirect(self, mock_llm, service):
+        """Therapist requesting to schedule does not get onboarding redirect."""
+        mock_llm.return_value = "I can help schedule for your client."
+        auth = ToolAuthContext(user_id=1, role="therapist", client_id=None, therapist_id=5)
+
+        response = await service.process_message(
+            user_message="Book an appointment for my client",
+            conversation_id=None,
+            context_type=AgentContextType.general,
+            user_id=1,
+            history=[],
+            auth=auth,
+            db=None,
+        )
+
+        assert response.context_type == AgentContextType.scheduling
+
+    @pytest.mark.asyncio
+    @patch("app.services.agent_service.AgentService._call_llm_with_tools", new_callable=AsyncMock)
+    async def test_onboarded_client_with_therapist_jumps_to_slots(self, mock_llm, service):
+        """Onboarded client with assigned therapist gets therapist_id in prompt, no 'which therapist' ask."""
+        mock_llm.return_value = "Here are your available times: Monday 9am, Tuesday 1pm."
+        auth = ToolAuthContext(
+            user_id=1, role="client", client_id=10, therapist_id=7
+        )
+
+        await service.process_message(
+            user_message="I'd like to schedule an appointment",
+            conversation_id=None,
+            context_type=AgentContextType.general,
+            user_id=1,
+            history=[],
+            auth=auth,
+            db=None,
+        )
+
+        call_kwargs = mock_llm.call_args.kwargs
+        assert "Use therapist_id 7" in call_kwargs["system_prompt"]
+        assert "Do NOT ask which therapist" in call_kwargs["system_prompt"]

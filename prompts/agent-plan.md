@@ -1,6 +1,6 @@
 Chat Agent Architecture Plan
 Overview
-A privacy-preserving conversational agent integrated into the existing Tava app, targeting client onboarding and appointment scheduling flows. The agent uses a tool-calling pattern (inspired by OpenEMR) where the LLM proposes actions and the backend executes them — the LLM never directly touches PII/PHI or performs state changes.
+A privacy-preserving conversational agent integrated into the existing app, targeting client onboarding and appointment scheduling flows. The agent uses a tool-calling pattern (inspired by OpenEMR) where the LLM proposes actions and the backend executes them — the LLM never directly touches PII/PHI or performs state changes.
 
 Architecture
 

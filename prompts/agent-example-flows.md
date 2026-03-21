@@ -14,7 +14,7 @@ USER: Hi, I'm new here and not sure how this works.
   → System prompt: onboarding template
   → No PII detected
 
-AGENT: Welcome to Tava Health! I'm glad you're here. Starting therapy is a
+AGENT: Welcome! I'm glad you're here. Starting therapy is a
        brave step, and I'll help make the process as smooth as possible.
 
        Here's what onboarding looks like:

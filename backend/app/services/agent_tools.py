@@ -271,7 +271,7 @@ async def execute_tool(
 def _exec_get_current_datetime() -> dict[str, Any]:
     """Return current datetime info for the LLM to reason about dates."""
     now = datetime.now(timezone.utc)
-    # Also provide Mountain Time as a convenience (Tava is Utah-based)
+    # Also provide Mountain Time as a convenience
     mountain_offset = timedelta(hours=-7)  # MDT
     mountain_now = now + mountain_offset
 

@@ -14,7 +14,7 @@
 
 ## Quick Reference
 
-- Demo accounts: therapist@tava.health / client@tava.health — password: demo123
+- Demo accounts: therapist@demo.health / client@demo.health — password: demo123
 - Backend: `cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000`
 - Frontend: `cd frontend && npm run dev` (port 5173)
 - Docker: `docker-compose up -d` (Postgres 5433, MinIO 9002, LiveKit 7880)

@@ -1,4 +1,4 @@
-# Tava Health — AI Treatment Plan Assistant
+# Appointment Assistant — AI Treatment Plan Assistant
 
 AI-powered mental health treatment plan generation. Therapists upload session transcripts; the system generates structured, evidence-based treatment plans with citations, a client-friendly view, and safety flag detection.
 
@@ -95,8 +95,8 @@ npm run dev
 
 | Role | Email | Password |
 |------|-------|----------|
-| Therapist | therapist@tava.health | demo123 |
-| Client | client@tava.health | demo123 |
+| Therapist | therapist@demo.health | demo123 |
+| Client | client@demo.health | demo123 |
 
 ---
 

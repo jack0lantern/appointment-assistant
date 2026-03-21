@@ -23,7 +23,7 @@ from app.services.auth_service import hash_password
 
 router = APIRouter(prefix="/api/test", tags=["test"])
 
-DEMO_THERAPIST_EMAIL = "therapist@tava.health"
+DEMO_THERAPIST_EMAIL = "therapist@demo.health"
 
 
 async def _get_or_create_demo_therapist(db: AsyncSession) -> Therapist:

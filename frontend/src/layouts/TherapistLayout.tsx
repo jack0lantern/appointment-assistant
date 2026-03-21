@@ -31,7 +31,7 @@ export default function TherapistLayout() {
     <div className="flex h-screen bg-slate-50">
       <aside className="w-56 border-r bg-white flex flex-col">
         <div className="p-4 border-b">
-          <h1 className="text-lg font-semibold text-slate-900">Tava Health</h1>
+          <h1 className="text-lg font-semibold text-slate-900">Appointment Assistant</h1>
           <p className="text-xs text-slate-500">Therapist Portal</p>
         </div>
         <nav className="flex-1 p-3 space-y-1">

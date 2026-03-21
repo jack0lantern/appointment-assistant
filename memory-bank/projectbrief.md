@@ -1,8 +1,8 @@
-# Project Brief: Tava Health
+# Project Brief: Appointment Assistant
 
 ## What This Is
 
-**Tava Health** is an AI-powered mental health treatment plan assistant. Therapists upload session transcripts; the system generates structured, evidence-based treatment plans with citations, a client-friendly view, and safety flag detection.
+**Appointment Assistant** is an AI-powered mental health treatment plan assistant. Therapists upload session transcripts; the system generates structured, evidence-based treatment plans with citations, a client-friendly view, and safety flag detection.
 
 ## Problem Solved
 

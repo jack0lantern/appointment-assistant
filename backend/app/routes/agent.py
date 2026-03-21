@@ -25,6 +25,8 @@ def _build_auth_context(user: User) -> ToolAuthContext:
     """Build a ToolAuthContext from an authenticated user."""
     client_id = user.client_profile.id if user.client_profile else None
     therapist_id = user.therapist_profile.id if user.therapist_profile else None
+    if therapist_id is None and user.client_profile is not None:
+        therapist_id = user.client_profile.therapist_id
     return ToolAuthContext(
         user_id=user.id,
         role=user.role,

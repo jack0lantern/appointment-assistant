@@ -1,4 +1,4 @@
-# Tava Health - AI Mental Health Treatment Plans
+# Appointment Assistant - AI Mental Health Treatment Plans
 ## Implementation Plan v2 — Orchestrated Parallel Build (Claude Code Agents)
 
 ---
@@ -272,8 +272,8 @@ Then:
 13. Run migration: alembic upgrade head
 14. Create backend/app/seed.py that seeds:
     - Import hash_password from app.services.auth_service
-    - Therapist user (email: therapist@tava.health, password: demo123)
-    - Client user (email: client@tava.health, password: demo123)
+    - Therapist user (email: therapist@demo.health, password: demo123)
+    - Client user (email: client@demo.health, password: demo123)
     - Therapist profile (license: LCSW, specialties: ["anxiety", "depression", "CBT"])
     - Client profile linked to therapist (name: "Alex Rivera")
     - 1 session with transcript (read from evaluation/fixtures/anxiety.txt)
@@ -472,7 +472,7 @@ Create:
       optional form fields `client_name` and `save` — so curl with `-F file=@transcript.txt` works
     - Flow:
       1. Start timer
-      2. If `save=True`: look up or create a demo therapist (email: therapist@tava.health),
+      2. If `save=True`: look up or create a demo therapist (email: therapist@demo.health),
          create a Client with `client_name`, create a Session + Transcript record
       3. Call `run_pipeline(transcript_text)` from app.services.ai_pipeline
       4. If `save=True`: persist TreatmentPlan, TreatmentPlanVersion, SafetyFlag, HomeworkItem, SessionSummary
@@ -543,8 +543,8 @@ Checks:
 - [ ] seed.py imports hash_password from app.services.auth_service (not its own)
 - [ ] seed.py creates: therapist user, client user, therapist profile, client
       profile, 1 session with transcript from evaluation/fixtures/anxiety.txt
-- [ ] seed.py uses correct credentials (therapist@tava.health / demo123,
-      client@tava.health / demo123)
+- [ ] seed.py uses correct credentials (therapist@demo.health / demo123,
+      client@demo.health / demo123)
 - [ ] At least one Alembic migration file exists
 
 ## Agent B — AI Pipeline Service
@@ -682,7 +682,7 @@ ensure the fixture transcripts are present):
 docker-compose ps
 
 # All tables exist
-docker-compose exec postgres psql -U postgres -d tava -c "\dt"
+docker-compose exec postgres psql -U postgres -d appointment_app -c "\dt"
 # Expected: users, therapists, clients, sessions, transcripts,
 #           session_summaries, treatment_plans, treatment_plan_versions,
 #           safety_flags, homework_items
@@ -691,15 +691,15 @@ docker-compose exec postgres psql -U postgres -d tava -c "\dt"
 #### 2. Seed Data
 ```bash
 # Seed exists
-docker-compose exec postgres psql -U postgres -d tava -c \
+docker-compose exec postgres psql -U postgres -d appointment_app -c \
   "SELECT id, email, role FROM users;"
-# Expected: therapist@tava.health (therapist), client@tava.health (client)
+# Expected: therapist@demo.health (therapist), client@demo.health (client)
 
-docker-compose exec postgres psql -U postgres -d tava -c \
+docker-compose exec postgres psql -U postgres -d appointment_app -c \
   "SELECT id, user_id FROM therapists;"
 # Expected: 1 row
 
-docker-compose exec postgres psql -U postgres -d tava -c \
+docker-compose exec postgres psql -U postgres -d appointment_app -c \
   "SELECT id, therapist_id FROM clients;"
 # Expected: 1 row
 ```
@@ -712,7 +712,7 @@ uvicorn app.main:app --reload --port 8000
 # Login as therapist
 curl -s -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"therapist@tava.health","password":"demo123"}' | python -m json.tool
+  -d '{"email":"therapist@demo.health","password":"demo123"}' | python -m json.tool
 # Expected: { "token": "eyJ...", "user": { "id": 1, "email": "...", "role": "therapist" } }
 
 # Save token
@@ -726,7 +726,7 @@ curl -s http://localhost:8000/api/auth/me \
 # Login as client
 curl -s -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"client@tava.health","password":"demo123"}' | python -m json.tool
+  -d '{"email":"client@demo.health","password":"demo123"}' | python -m json.tool
 ```
 
 #### 4. Client CRUD
@@ -1324,7 +1324,7 @@ After both agents complete:
 #### 1. Login Flow
 ```
 - Go to /login
-- Enter: therapist@tava.health / demo123
+- Enter: therapist@demo.health / demo123
 - Should redirect to /therapist/dashboard
 - Sidebar should show: Dashboard, Clients, Evaluation
 - Privacy disclaimer footer visible
@@ -1387,7 +1387,7 @@ After both agents complete:
 #### 6. Client Login & Dashboard
 ```
 - Logout therapist
-- Login as: client@tava.health / demo123
+- Login as: client@demo.health / demo123
 - Should redirect to /client/dashboard
 - Welcome message with client name
 - "Your Treatment Plan" card visible
@@ -1654,7 +1654,7 @@ Then create documentation:
      docker-compose up -d
      Backend setup (pip install, alembic upgrade, seed, uvicorn)
      Frontend setup (npm install, npm run dev)
-     Demo accounts (therapist@tava.health / client@tava.health, password: demo123)
+     Demo accounts (therapist@demo.health / client@demo.health, password: demo123)
    - AI System Design:
      Two-stage pipeline explanation
      Prompt strategy (clinical accuracy, citation-based explainability)
@@ -1786,8 +1786,8 @@ Checks:
 - [ ] All tests runnable with: cd backend && pytest tests/ -v
 - [ ] README.md exists at project root
 - [ ] README.md contains: project title, tech stack table, architecture diagram,
-      quick start with prerequisites, demo accounts (therapist@tava.health /
-      client@tava.health / demo123), AI system design section, key product
+      quick start with prerequisites, demo accounts (therapist@demo.health /
+      client@demo.health / demo123), AI system design section, key product
       decisions, evaluation framework section, limitations, testing section
 - [ ] README.md quick start instructions reference docker-compose, pip install,
       alembic upgrade, seed, uvicorn, npm install, npm run dev

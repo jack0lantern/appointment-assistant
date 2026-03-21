@@ -11,7 +11,7 @@ def _ensure_asyncpg_url(url: str) -> str:
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5433/tava"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5433/appointment_app"
     DATABASE_PUBLIC_URL: str | None = None
     """Public URL for external connections (e.g. Railway TCP proxy). Use with USE_PUBLIC_DATABASE=1 to seed prod from local."""
     USE_PUBLIC_DATABASE: bool = False
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     S3_ENDPOINT_URL: str = "http://localhost:9000"
     S3_ACCESS_KEY: str = "minioadmin"
     S3_SECRET_KEY: str = "minioadmin"
-    S3_BUCKET_RECORDINGS: str = "tava-recordings"
+    S3_BUCKET_RECORDINGS: str = "appointment-recordings"
     S3_REGION: str = "us-east-1"
 
     # AssemblyAI

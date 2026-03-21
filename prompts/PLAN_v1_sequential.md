@@ -1,4 +1,4 @@
-# Tava Health - AI Mental Health Treatment Plans
+# Appointment Assistant - AI Mental Health Treatment Plans
 ## Implementation Plan v1 — Sequential Build
 
 ---

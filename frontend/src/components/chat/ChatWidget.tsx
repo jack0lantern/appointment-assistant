@@ -58,7 +58,7 @@ export default function ChatWidget({ contextType = 'general', pageContext }: Cha
           {/* Header */}
           <div className="flex items-center justify-between rounded-t-2xl bg-teal-600 px-4 py-3">
             <div>
-              <h3 className="text-sm font-semibold text-white">Tava Assistant</h3>
+              <h3 className="text-sm font-semibold text-white">Assistant</h3>
               <p className="text-xs text-teal-100">Here to help you every step</p>
             </div>
             <div className="flex items-center gap-1">
@@ -87,7 +87,7 @@ export default function ChatWidget({ contextType = 'general', pageContext }: Cha
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
             {messages.length === 0 && (
               <div className="text-center text-sm text-slate-400 py-8">
-                <p className="font-medium text-slate-600 mb-1">Welcome to Tava Health</p>
+                <p className="font-medium text-slate-600 mb-1">Welcome to Appointment Assistant</p>
                 <p>I can help with onboarding, scheduling, or just being here for you.</p>
               </div>
             )}

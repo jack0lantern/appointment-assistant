@@ -13,7 +13,7 @@ async def main():
     async with async_session_factory() as session:
         # Check if seed data already exists
         existing = await session.execute(
-            select(User).where(User.email == "therapist@tava.health")
+            select(User).where(User.email == "therapist@demo.health")
         )
         if existing.scalar_one_or_none():
             print("Seed data already exists, skipping.")
@@ -21,7 +21,7 @@ async def main():
 
         # Create therapist user
         therapist_user = User(
-            email="therapist@tava.health",
+            email="therapist@demo.health",
             name="Dr. Sarah Chen",
             role="therapist",
             password_hash=hash_password("demo123"),
@@ -31,7 +31,7 @@ async def main():
 
         # Create client user
         client_user = User(
-            email="client@tava.health",
+            email="client@demo.health",
             name="Alex Rivera",
             role="client",
             password_hash=hash_password("demo123"),

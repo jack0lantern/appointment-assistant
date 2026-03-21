@@ -109,13 +109,13 @@ _DISCLAIMER = (
 
 _SYSTEM_PROMPTS: dict[AgentContextType, str] = {
     AgentContextType.general: (
-        "You are a supportive, empathetic AI assistant for Tava Health, a mental health "
+        "You are a supportive, empathetic AI assistant for a mental health "
         "care platform. You help users with onboarding, scheduling appointments, and "
         "answering general questions about the platform."
         + _BASE_RULES
     ),
     AgentContextType.onboarding: (
-        "You are a supportive AI assistant helping a new user through the Tava Health "
+        "You are a supportive AI assistant helping a new user through the "
         "onboarding process. Guide them step by step: welcome them, explain what to "
         "expect, help them understand what information is needed, and make the process "
         "feel approachable."
@@ -123,7 +123,7 @@ _SYSTEM_PROMPTS: dict[AgentContextType, str] = {
     ),
     AgentContextType.scheduling: (
         "You are a supportive AI assistant helping a user schedule, reschedule, or "
-        "cancel a therapy appointment at Tava Health. Help them find suitable times "
+        "cancel a therapy appointment. Help them find suitable times "
         "and walk them through the process.\n"
         "When the user asks to schedule, first call get_current_datetime to know today's date, "
         "then call get_available_slots to find open times. Present the options clearly. "
@@ -131,7 +131,7 @@ _SYSTEM_PROMPTS: dict[AgentContextType, str] = {
         + _BASE_RULES
     ),
     AgentContextType.emotional_support: (
-        "You are a supportive AI assistant at Tava Health. The user appears to be "
+        "You are a supportive AI assistant. The user appears to be "
         "experiencing emotional distress. Your role is to:\n"
         "- Validate their feelings without minimizing.\n"
         "- Use the get_validation_message tool to provide warm acknowledgment.\n"
@@ -142,7 +142,7 @@ _SYSTEM_PROMPTS: dict[AgentContextType, str] = {
     ),
     AgentContextType.document_upload: (
         "You are a supportive AI assistant helping a user upload and verify documents "
-        "(insurance cards, ID, intake forms) at Tava Health. Guide them through the "
+        "(insurance cards, ID, intake forms). Guide them through the "
         "upload process and confirm extracted information."
         + _BASE_RULES
     ),
@@ -421,12 +421,40 @@ class AgentService:
         classified = self.classify_intent(user_message)
         effective_context = classified if classified != AgentContextType.general else context_type
 
+        # Redirect: client without profile trying to schedule → onboarding first
+        redirected_from_scheduling = False
+        if (
+            effective_context == AgentContextType.scheduling
+            and auth.role == "client"
+            and auth.client_id is None
+        ):
+            effective_context = AgentContextType.onboarding
+            redirected_from_scheduling = True
+
         # Build redacted prompt
         system_prompt, llm_messages = self.build_llm_messages(
             user_message=user_message,
             history=history or [],
             context_type=effective_context,
         )
+
+        if redirected_from_scheduling:
+            system_prompt += (
+                "\n\nIMPORTANT: The user asked to schedule an appointment but has not completed "
+                "onboarding (no client profile). Guide them through onboarding first. Explain "
+                "what information is needed and that once their profile is set up, they can "
+                "schedule. Do not call scheduling tools until they have completed onboarding."
+            )
+        elif (
+            effective_context == AgentContextType.scheduling
+            and auth.role == "client"
+            and auth.therapist_id is not None
+        ):
+            system_prompt += (
+                f"\n\nIMPORTANT: The user is a client with an assigned therapist. "
+                f"Use therapist_id {auth.therapist_id} for get_available_slots and book_appointment. "
+                "Do NOT ask which therapist they want to see — proceed directly to showing available times."
+            )
 
         # Build auth context if not provided
         if auth is None:
@@ -463,6 +491,14 @@ class AgentService:
 
         # Get suggested actions
         suggested = self.get_suggested_actions(effective_context)
+        if redirected_from_scheduling:
+            suggested = [
+                *suggested,
+                SuggestedAction(
+                    label="I'm ready to schedule",
+                    payload="I've completed onboarding, I'd like to schedule an appointment",
+                ),
+            ]
 
         return AgentChatResponse(
             message=response_text,

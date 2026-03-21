@@ -32,7 +32,7 @@ export default function ClientLayout() {
       <header className="bg-white border-b shadow-sm">
         <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-teal-900">Tava Health</h1>
+            <h1 className="text-lg font-semibold text-teal-900">Appointment Assistant</h1>
           </div>
           <nav className="flex items-center gap-2">
             <NavLink to="/client/dashboard" className={linkClass}>Home</NavLink>

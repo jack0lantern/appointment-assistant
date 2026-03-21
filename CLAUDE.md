@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Tava Health** is an AI-powered mental health treatment plan generation system. The application generates personalized, evidence-based treatment plans for clients using Claude AI, with therapy workflow management and safety evaluation built-in.
+**Appointment Assistant** is an AI-powered mental health treatment plan generation system. The application generates personalized, evidence-based treatment plans for clients using Claude AI, with therapy workflow management and safety evaluation built-in.
 
 **Current Status:** Design & planning phase. The main plan defines a multi-phase orchestrated build using Claude Code agents.
 
@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Supporting Documents
 - **prompts/PLAN_v1_sequential.md** — Alternative sequential build approach (reference only)
-- **docs/TavaHealth.pdf** — Product documentation
+- **docs/HealthApp.pdf** — Product documentation
 - **.agents/skills/test-driven-development/** — Custom TDD skill enforcing red-green-refactor discipline
 
 ---

@@ -32,7 +32,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Tava Health</CardTitle>
+          <CardTitle className="text-2xl">Appointment Assistant</CardTitle>
           <p className="text-sm text-muted-foreground">Sign in to your account</p>
         </CardHeader>
         <CardContent>
@@ -64,8 +64,8 @@ export default function Login() {
             </Button>
           </form>
           <div className="mt-4 text-xs text-muted-foreground text-center space-y-1">
-            <p>Demo: therapist@tava.health / demo123</p>
-            <p>Demo: client@tava.health / demo123</p>
+            <p>Demo: therapist@demo.health / demo123</p>
+            <p>Demo: client@demo.health / demo123</p>
           </div>
         </CardContent>
       </Card>

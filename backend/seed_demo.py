@@ -171,11 +171,11 @@ async def main():
     async with async_session_factory() as db:
         # Get therapist
         result = await db.execute(
-            select(User).where(User.email == "therapist@tava.health")
+            select(User).where(User.email == "therapist@demo.health")
         )
         therapist_user = result.scalar_one_or_none()
         if therapist_user is None:
-            print("ERROR: Run app.seed first (therapist@tava.health not found)")
+            print("ERROR: Run app.seed first (therapist@demo.health not found)")
             return
 
         therapist = therapist_user.therapist_profile
@@ -201,15 +201,15 @@ async def main():
             therapist,
             fixture_name="depression.txt",
             client_name="Jordan Kim",
-            client_email="jordan@demo.tava.health",
+            client_email="jordan@demo.health",
         )
 
         await db.commit()
         print("\nDemo seed complete!")
         print("Demo accounts:")
-        print("  therapist@tava.health / demo123")
-        print("  client@tava.health / demo123  (Alex Rivera — approved plan)")
-        print("  jordan@demo.tava.health / demo123  (Jordan Kim — approved plan)")
+        print("  therapist@demo.health / demo123")
+        print("  client@demo.health / demo123  (Alex Rivera — approved plan)")
+        print("  jordan@demo.health / demo123  (Jordan Kim — approved plan)")
 
 
 if __name__ == "__main__":

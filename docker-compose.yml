@@ -1,11 +1,11 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: tava-postgres
+    container_name: appointment-postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: tava
+      POSTGRES_DB: appointment_app
     ports:
       - "5433:5432"
     volumes:
@@ -13,7 +13,7 @@ services:
 
   livekit:
     image: livekit/livekit-server:latest
-    container_name: tava-livekit
+    container_name: appointment-livekit
     command: --config /etc/livekit.yaml
     ports:
       - "7880:7880"   # HTTP / WebSocket
@@ -24,7 +24,7 @@ services:
 
   minio:
     image: minio/minio
-    container_name: tava-minio
+    container_name: appointment-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
