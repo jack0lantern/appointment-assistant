@@ -1,0 +1,265 @@
+require "rails_helper"
+
+RSpec.describe AgentTools do
+  describe "TOOL_DEFINITIONS" do
+    it "has 12 tool definitions" do
+      expect(AgentTools::TOOL_DEFINITIONS.length).to eq(12)
+    end
+
+    it "each tool has name, description, and input_schema" do
+      AgentTools::TOOL_DEFINITIONS.each do |tool|
+        expect(tool).to have_key(:name), "Tool missing :name"
+        expect(tool).to have_key(:description), "Tool #{tool[:name]} missing :description"
+        expect(tool).to have_key(:input_schema), "Tool #{tool[:name]} missing :input_schema"
+        expect(tool[:input_schema]).to have_key(:type)
+        expect(tool[:input_schema][:type]).to eq("object")
+      end
+    end
+
+    it "includes all expected tool names" do
+      names = AgentTools::TOOL_DEFINITIONS.map { |t| t[:name] }
+      %w[
+        get_current_datetime get_available_slots book_appointment cancel_appointment
+        get_grounding_exercise get_psychoeducation get_what_to_expect get_validation_message
+        search_therapists confirm_therapist check_document_status upload_document
+      ].each do |expected|
+        expect(names).to include(expected)
+      end
+    end
+  end
+
+  describe "ToolAuthContext" do
+    it "stores user_id, role, client_id, and therapist_id" do
+      ctx = AgentTools::ToolAuthContext.new(
+        user_id: 1, role: "client", client_id: 10, therapist_id: 5
+      )
+      expect(ctx.user_id).to eq(1)
+      expect(ctx.role).to eq("client")
+      expect(ctx.client_id).to eq(10)
+      expect(ctx.therapist_id).to eq(5)
+    end
+
+    it "defaults client_id and therapist_id to nil" do
+      ctx = AgentTools::ToolAuthContext.new(user_id: 1, role: "client")
+      expect(ctx.client_id).to be_nil
+      expect(ctx.therapist_id).to be_nil
+    end
+  end
+
+  describe ".execute_tool" do
+    let(:client_auth) do
+      AgentTools::ToolAuthContext.new(user_id: 1, role: "client", client_id: 10, therapist_id: 5)
+    end
+
+    let(:therapist_auth) do
+      AgentTools::ToolAuthContext.new(user_id: 2, role: "therapist", client_id: nil, therapist_id: 5)
+    end
+
+    describe "get_current_datetime" do
+      it "returns datetime info" do
+        result = described_class.execute_tool(
+          name: "get_current_datetime",
+          auth_context: client_auth
+        )
+        expect(result).to have_key(:utc)
+        expect(result).to have_key(:mountain_time)
+        expect(result).to have_key(:date)
+        expect(result).to have_key(:day_of_week)
+        expect(result).to have_key(:iso_date)
+      end
+    end
+
+    describe "get_grounding_exercise" do
+      it "returns an exercise" do
+        result = described_class.execute_tool(
+          name: "get_grounding_exercise",
+          auth_context: client_auth
+        )
+        expect(result).to have_key(:exercise)
+        expect(result[:exercise]).to be_a(String)
+        expect(result[:exercise]).not_to be_empty
+      end
+    end
+
+    describe "get_psychoeducation" do
+      it "returns content for a valid topic" do
+        result = described_class.execute_tool(
+          name: "get_psychoeducation",
+          input: { "topic" => "anxiety" },
+          auth_context: client_auth
+        )
+        expect(result).to have_key(:content)
+      end
+
+      it "returns error for an invalid topic" do
+        result = described_class.execute_tool(
+          name: "get_psychoeducation",
+          input: { "topic" => "nonexistent" },
+          auth_context: client_auth
+        )
+        expect(result).to have_key(:error)
+        expect(result[:error]).to include("Unknown topic")
+      end
+    end
+
+    describe "get_what_to_expect" do
+      it "returns content for a valid context" do
+        result = described_class.execute_tool(
+          name: "get_what_to_expect",
+          input: { "context" => "onboarding" },
+          auth_context: client_auth
+        )
+        expect(result).to have_key(:content)
+      end
+
+      it "returns error for an invalid context" do
+        result = described_class.execute_tool(
+          name: "get_what_to_expect",
+          input: { "context" => "nonexistent" },
+          auth_context: client_auth
+        )
+        expect(result).to have_key(:error)
+        expect(result[:error]).to include("Unknown context")
+      end
+    end
+
+    describe "get_validation_message" do
+      it "returns a message" do
+        result = described_class.execute_tool(
+          name: "get_validation_message",
+          auth_context: client_auth
+        )
+        expect(result).to have_key(:message)
+        expect(result[:message]).to be_a(String)
+      end
+    end
+
+    describe "upload_document" do
+      it "returns document info when document_ref exists in onboarding" do
+        user = create(:user, :client)
+        doc_ref = SecureRandom.uuid
+        conversation = create(:conversation, :onboarding, user: user, onboarding_progress: {
+          uploaded_documents: [
+            { document_ref: doc_ref, redacted_preview: "Insurance card: [NAME_1], policy [POLICY_1]", status: "verified" }
+          ]
+        })
+        auth = AgentTools::ToolAuthContext.new(user_id: user.id, role: "client", client_id: nil, therapist_id: nil)
+
+        result = described_class.execute_tool(
+          name: "upload_document",
+          input: { "document_ref" => doc_ref },
+          auth_context: auth
+        )
+
+        expect(result).to have_key(:found)
+        expect(result[:found]).to eq(true)
+        expect(result[:redacted_preview]).to eq("Insurance card: [NAME_1], policy [POLICY_1]")
+        expect(result[:status]).to eq("verified")
+      end
+
+      it "returns error when document_ref not found" do
+        user = create(:user, :client)
+        create(:conversation, :onboarding, user: user, onboarding_progress: { uploaded_documents: [] })
+        auth = AgentTools::ToolAuthContext.new(user_id: user.id, role: "client", client_id: nil, therapist_id: nil)
+
+        result = described_class.execute_tool(
+          name: "upload_document",
+          input: { "document_ref" => "nonexistent-ref" },
+          auth_context: auth
+        )
+
+        expect(result).to have_key(:error)
+        expect(result[:error]).to include("Document not found")
+      end
+
+      it "returns error when no active onboarding conversation" do
+        user = create(:user, :client)
+        auth = AgentTools::ToolAuthContext.new(user_id: user.id, role: "client", client_id: nil, therapist_id: nil)
+
+        result = described_class.execute_tool(
+          name: "upload_document",
+          input: { "document_ref" => "any-ref" },
+          auth_context: auth
+        )
+
+        expect(result).to have_key(:error)
+        expect(result[:error]).to include("No active onboarding conversation")
+      end
+    end
+
+    describe "unknown tool" do
+      it "returns an error" do
+        result = described_class.execute_tool(
+          name: "nonexistent_tool",
+          auth_context: client_auth
+        )
+        expect(result).to have_key(:error)
+        expect(result[:error]).to include("Unknown tool")
+      end
+    end
+
+    describe "auth validation for scheduling tools" do
+      describe "book_appointment" do
+        it "returns error when client has no client_id" do
+          auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "client", client_id: nil)
+          result = described_class.execute_tool(
+            name: "book_appointment",
+            input: { "therapist_id" => 5, "slot_id" => "slot-5-1" },
+            auth_context: auth
+          )
+          expect(result[:error]).to include("No client profile")
+        end
+
+        it "returns error when therapist omits client_id" do
+          result = described_class.execute_tool(
+            name: "book_appointment",
+            input: { "therapist_id" => 5, "slot_id" => "slot-5-1" },
+            auth_context: therapist_auth
+          )
+          expect(result[:error]).to include("must specify client_id")
+        end
+
+        it "returns error for unauthorized role" do
+          auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "admin")
+          result = described_class.execute_tool(
+            name: "book_appointment",
+            input: { "therapist_id" => 5, "slot_id" => "slot-5-1" },
+            auth_context: auth
+          )
+          expect(result[:error]).to include("Only clients and therapists")
+        end
+      end
+
+      describe "cancel_appointment" do
+        it "returns error when client has no client_id" do
+          auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "client", client_id: nil)
+          result = described_class.execute_tool(
+            name: "cancel_appointment",
+            input: { "session_id" => 1 },
+            auth_context: auth
+          )
+          expect(result[:error]).to include("No client profile")
+        end
+
+        it "returns error when therapist omits client_id" do
+          result = described_class.execute_tool(
+            name: "cancel_appointment",
+            input: { "session_id" => 1 },
+            auth_context: therapist_auth
+          )
+          expect(result[:error]).to include("must specify client_id")
+        end
+
+        it "returns error for unauthorized role" do
+          auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "admin")
+          result = described_class.execute_tool(
+            name: "cancel_appointment",
+            input: { "session_id" => 1 },
+            auth_context: auth
+          )
+          expect(result[:error]).to include("Only clients and therapists")
+        end
+      end
+    end
+  end
+end

@@ -92,6 +92,11 @@ docs/study-guide.md
 # Jupyter
 .ipynb_checkpoints/
 
+# Rails (backend_rails)
+backend_rails/tmp/
+backend_rails/log/
+backend_rails/storage/
+
 # mypy
 .mypy_cache/
 .dmypy.json
