@@ -286,10 +286,9 @@ class AgentService
     conversation.messages.create!(role: role, content: content)
   end
 
-  # Build frontend OnboardingState from conversation. Show progress during onboarding
-  # and scheduling (so the meter stays visible through the whole onboarding flow).
+  # Build frontend OnboardingState from conversation. Only for onboarding (new patients).
   def build_onboarding_state(conversation, effective_context)
-    return nil unless %w[onboarding scheduling].include?(effective_context)
+    return nil unless effective_context == "onboarding"
 
     progress = conversation.onboarding
     docs_verified = progress.docs_verified || false
