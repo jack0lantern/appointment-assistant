@@ -67,7 +67,8 @@ class AgentTools
         "Lists the user's upcoming scheduled appointments that can be cancelled. " \
         "Call this first when the user wants to cancel an appointment — it shows their " \
         "appointments as selectable cards. The user taps one to choose which to cancel; " \
-        "they will then send a message like 'Cancel session X' (X = session_id). Use that in cancel_appointment.",
+        "they will then send a message like 'Cancel session X' (X = session_id). Do NOT call cancel_appointment yet — " \
+        "ask for confirmation first, then call cancel_appointment only when they confirm.",
       input_schema: {
         type: "object",
         properties: {
@@ -86,7 +87,8 @@ class AgentTools
       description:
         "Cancels an existing appointment by session ID. " \
         "The backend validates that the caller owns the session. " \
-        "Use the session_id from list_appointments after the user selects which appointment to cancel.",
+        "Only call this AFTER the user has selected an appointment AND explicitly confirmed " \
+        "(e.g. 'Yes', 'Yes cancel it', 'Confirm'). Never cancel on selection alone — always ask for confirmation first.",
       input_schema: {
         type: "object",
         properties: {
@@ -426,7 +428,7 @@ class AgentTools
       session_date = selected_slot ? Time.parse(selected_slot[:start_time]) : nil
       canonical_slot_id = selected_slot ? selected_slot[:id].to_s : slot_id.to_s
 
-      if auth_context.role == "client"
+      result = if auth_context.role == "client"
         SchedulingService.book_appointment(
           client_id: auth_context.client_id,
           therapist_id: therapist_id,
@@ -443,6 +445,15 @@ class AgentTools
           acting_therapist_id: auth_context.therapist_id
         )
       end
+
+      if result[:status] == "confirmed" && session_date
+        zone = ActiveSupport::TimeZone[SchedulingService::DISPLAY_TIMEZONE]
+        start_local = session_date.in_time_zone(zone)
+        result[:display_date] = start_local.strftime("%A, %B %d")
+        result[:display_time] = start_local.strftime("%I:%M %p")
+      end
+
+      result
     rescue SchedulingService::ConflictError
       fresh_slots = SchedulingService.get_availability(therapist_id: therapist_id)
       {

@@ -133,6 +133,106 @@ RSpec.describe "Suggested actions evaluation", type: :service do
   end
 
   # ---------------------------------------------------------------------------
+  # Tool-aware suggested actions (fallback between LLM and static defaults)
+  # ---------------------------------------------------------------------------
+  describe "tool-aware suggested actions" do
+    it "returns confirm_therapist follow-ups after therapist selection" do
+      actions = ContextBuilder.tool_aware_suggestions(["search_therapists", "confirm_therapist"])
+      expect(actions).to be_present
+      labels = actions.map { |a| a[:label] }
+      expect(labels).to include("Book an appointment")
+      expect(labels).to include("See available times")
+    end
+
+    it "returns booking follow-ups after book_appointment" do
+      actions = ContextBuilder.tool_aware_suggestions(["get_available_slots", "book_appointment"])
+      expect(actions).to be_present
+      labels = actions.map { |a| a[:label] }
+      expect(labels).to include("View my appointments")
+      expect(labels).to include("What to expect")
+    end
+
+    it "returns search follow-ups after search_therapists" do
+      actions = ContextBuilder.tool_aware_suggestions(["search_therapists"])
+      expect(actions).to be_present
+      labels = actions.map { |a| a[:label] }
+      expect(labels).to include("Help me choose")
+    end
+
+    it "returns upload follow-ups after upload_document" do
+      actions = ContextBuilder.tool_aware_suggestions(["upload_document"])
+      labels = actions.map { |a| a[:label] }
+      expect(labels).to include("Upload another document")
+      expect(labels).to include("What's next?")
+    end
+
+    it "returns slot follow-ups after get_available_slots" do
+      actions = ContextBuilder.tool_aware_suggestions(["get_current_datetime", "get_available_slots"])
+      labels = actions.map { |a| a[:label] }
+      expect(labels).to include("Book one of these")
+    end
+
+    it "returns nil for unknown or utility-only tools" do
+      expect(ContextBuilder.tool_aware_suggestions(["get_current_datetime"])).to be_nil
+      expect(ContextBuilder.tool_aware_suggestions(["set_suggested_actions"])).to be_nil
+    end
+
+    it "returns nil for empty or nil tool lists" do
+      expect(ContextBuilder.tool_aware_suggestions([])).to be_nil
+      expect(ContextBuilder.tool_aware_suggestions(nil)).to be_nil
+    end
+
+    it "picks the last significant tool when multiple ran" do
+      # confirm_therapist is last significant → should get therapist confirmation actions
+      actions = ContextBuilder.tool_aware_suggestions(["search_therapists", "confirm_therapist"])
+      labels = actions.map { |a| a[:label] }
+      expect(labels).to include("Book an appointment")
+      expect(labels).not_to include("Help me choose")
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Tool-aware integration: suggestions after tool execution in pipeline
+  # ---------------------------------------------------------------------------
+  describe "tool-aware pipeline integration" do
+    let(:user) { create(:user, :client) }
+
+    it "uses tool-aware suggestions when LLM runs confirm_therapist but not set_suggested_actions" do
+      # Simulate: LLM calls confirm_therapist, then responds with text (no set_suggested_actions)
+      call_count = 0
+      allow(mock_llm).to receive(:call) do
+        call_count += 1
+        if call_count == 1
+          # First call: LLM wants to confirm therapist
+          { "content" => [
+            { "type" => "tool_use", "id" => "t1", "name" => "confirm_therapist",
+              "input" => { "therapist_id" => 999 } }
+          ] }
+        else
+          # Second call: LLM responds with text (no set_suggested_actions)
+          { "content" => [
+            { "type" => "text", "text" => "Dr. Chen is now your therapist! Ready to book?" }
+          ] }
+        end
+      end
+
+      # Stub the tool execution to avoid DB lookup
+      allow(AgentTools).to receive(:execute_tool).and_return({ success: true, therapist: { name: "Dr. Chen" } })
+
+      result = service.process_message(
+        message: "I'd like Dr. Chen",
+        user: user,
+        context_type: "general"
+      )
+
+      labels = result[:suggested_actions].map { |a| a[:label] }
+      expect(labels).to include("Book an appointment")
+      expect(labels).to include("See available times")
+      expect(labels).not_to include("Help me get started")
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # Redirect button injection
   # ---------------------------------------------------------------------------
   describe "redirect button injection" do

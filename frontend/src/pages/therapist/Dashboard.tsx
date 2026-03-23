@@ -109,10 +109,12 @@ export default function Dashboard() {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
+                      timeZone: 'America/Denver',
                     })}{' '}
                     at {new Date(apt.session_date).toLocaleTimeString('en-US', {
                       hour: 'numeric',
                       minute: '2-digit',
+                      timeZone: 'America/Denver',
                     })}{' '}
                     · {apt.duration_minutes} min
                   </p>

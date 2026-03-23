@@ -104,7 +104,24 @@ RSpec.describe "Returning client rebooking evaluation", type: :service do
       expect(result[:appointment_results].first[:session_id]).to eq(scheduled_session.id)
     end
 
-    it "cancels appointment when user selects one" do
+    it "asks for confirmation when user selects appointment (does not cancel yet)" do
+      allow(mock_llm).to receive(:call).and_return(
+        "content" => [{ "type" => "text",
+          "text" => "Are you sure you want to cancel your appointment on Tuesday at 3:00 PM? Please confirm." }]
+      )
+
+      result = service.process_message(
+        message: "Cancel session #{scheduled_session.id}",
+        user: user,
+        context_type: "scheduling"
+      )
+
+      scheduled_session.reload
+      expect(scheduled_session.status).to eq("scheduled")
+      expect(result[:message]).to include("sure")
+    end
+
+    it "cancels appointment when user confirms" do
       call_count = 0
       allow(mock_llm).to receive(:call) do |_args|
         call_count += 1
@@ -118,7 +135,7 @@ RSpec.describe "Returning client rebooking evaluation", type: :service do
       end
 
       result = service.process_message(
-        message: "Cancel session #{scheduled_session.id}",
+        message: "Yes, please cancel session #{scheduled_session.id}",
         user: user,
         context_type: "scheduling"
       )
@@ -180,7 +197,7 @@ RSpec.describe "Returning client rebooking evaluation", type: :service do
       end
 
       result1 = service.process_message(
-        message: "Cancel session #{scheduled_session.id}",
+        message: "Yes, cancel session #{scheduled_session.id}",
         user: user,
         context_type: "scheduling"
       )

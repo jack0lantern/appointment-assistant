@@ -2,7 +2,7 @@ class ContextBuilder
   BASE_RULES = <<~RULES
 
     RULES:
-    - When you present the user with specific options or follow-up choices (e.g. "what brings you to therapy?" with examples like anxiety, depression, relationship challenges), call the set_suggested_actions tool with those options. The buttons will then match what you offered. Each action needs a short label (button text) and payload (the message sent when tapped). Use 3–5 options.
+    - ALWAYS call the set_suggested_actions tool with your response to provide contextual follow-up buttons. This is especially important after completing an action (booking, selecting a therapist, uploading a document) — the buttons should reflect logical next steps. Each action needs a short label (button text) and payload (the message sent when tapped). Use 3–5 options. The buttons must match the context of your response, not generic options.
     - Be warm, concise, and validating.
     - NEVER provide diagnoses, medication advice, prescription recommendations, or clinical recommendations of any kind.
     - NEVER suggest, recommend, or discuss specific medications, supplements, dosages, or treatments. If asked about medication, direct the user to their prescribing provider or therapist.
@@ -37,9 +37,11 @@ class ContextBuilder
       "When the user picks a slot, call book_appointment with the correct slot_id.\n" \
       "When the user asks to cancel an appointment, first call list_appointments to show their " \
       "upcoming appointments. If there are any, the frontend will display them as selectable cards. " \
-      "Ask which one they want to cancel — when they tap a card they will send a message like " \
-      "'Cancel session X'; use that session_id in cancel_appointment. If there are no appointments, " \
-      "tell them so." + BASE_RULES,
+      "Ask which one they want to cancel. When they tap a card they will send a message like " \
+      "'Cancel session X' — do NOT call cancel_appointment yet. Instead, summarize the appointment " \
+      "(date, time, therapist) and ask: 'Are you sure you want to cancel this appointment? Please confirm (e.g. say Yes or Yes, cancel it).' " \
+      "Only call cancel_appointment when the user explicitly confirms (e.g. 'Yes', 'Yes cancel it', 'Confirm'). " \
+      "If there are no appointments, tell them so." + BASE_RULES,
 
     "emotional_support" =>
       "You are a supportive AI assistant. The user appears to be " \
@@ -107,6 +109,67 @@ class ContextBuilder
       { label: "What documents do I need?", payload: "What documents do I need to provide?" }
     ]
   }.freeze
+
+  # Post-tool-execution suggested actions.
+  # When the LLM doesn't call set_suggested_actions, these provide contextual
+  # follow-ups based on which tools actually ran in this turn — far more relevant
+  # than the static per-context defaults.
+  TOOL_AWARE_ACTIONS = {
+    "confirm_therapist" => [
+      { label: "Book an appointment", payload: "I'd like to book an appointment with my therapist" },
+      { label: "See available times", payload: "What times are available this week?" },
+      { label: "Tell me about my therapist", payload: "Can you tell me more about my therapist?" }
+    ],
+    "search_therapists" => [
+      { label: "Tell me more about them", payload: "Can you tell me more about these therapists?" },
+      { label: "Search with different criteria", payload: "I'd like to search for a therapist with different criteria" },
+      { label: "Help me choose", payload: "Can you help me choose between these therapists?" }
+    ],
+    "book_appointment" => [
+      { label: "View my appointments", payload: "Show me my upcoming appointments" },
+      { label: "What to expect", payload: "What should I expect at my first appointment?" },
+      { label: "Reschedule", payload: "I need to reschedule my appointment" }
+    ],
+    "cancel_appointment" => [
+      { label: "Rebook appointment", payload: "I'd like to schedule a new appointment" },
+      { label: "View my appointments", payload: "Show me my remaining appointments" }
+    ],
+    "get_available_slots" => [
+      { label: "Book one of these", payload: "I'd like to book one of these times" },
+      { label: "See more times", payload: "Can you show me more available times?" },
+      { label: "Different week", payload: "What about next week?" }
+    ],
+    "upload_document" => [
+      { label: "Upload another document", payload: "I want to upload another document" },
+      { label: "Check document status", payload: "Can you check on my document status?" },
+      { label: "What's next?", payload: "What's the next step in onboarding?" }
+    ],
+    "check_document_status" => [
+      { label: "Upload a document", payload: "I want to upload a document" },
+      { label: "Continue onboarding", payload: "What's the next step?" }
+    ],
+    "list_appointments" => [
+      { label: "Cancel an appointment", payload: "I'd like to cancel one of these" },
+      { label: "Reschedule", payload: "I need to reschedule" },
+      { label: "Book a new one", payload: "I'd like to book another appointment" }
+    ]
+  }.freeze
+
+  # Return suggested actions based on which tools were executed in this turn.
+  # Picks the most "significant" tool (last non-utility tool that ran).
+  # Returns nil if no tool-aware actions are available.
+  #
+  # @param executed_tools [Array<String>] tool names that ran this turn
+  # @return [Array<Hash>, nil]
+  def self.tool_aware_suggestions(executed_tools)
+    return nil if executed_tools.blank?
+
+    # Priority order: pick the most meaningful tool (last significant one wins)
+    significant = executed_tools.reverse.find { |t| TOOL_AWARE_ACTIONS.key?(t) }
+    return nil unless significant
+
+    TOOL_AWARE_ACTIONS[significant]
+  end
 
   # Build the system prompt and messages array for the LLM.
   #

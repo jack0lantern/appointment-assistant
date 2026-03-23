@@ -187,6 +187,7 @@ class AgentService
     therapist_results = llm_response[:therapist_results] || llm_response["therapist_results"]
     appointment_results = llm_response[:appointment_results] || llm_response["appointment_results"]
     llm_suggested_actions = llm_response[:suggested_actions] || llm_response["suggested_actions"]
+    executed_tools = llm_response[:executed_tools] || llm_response["executed_tools"] || []
 
     # 9. Response safety check
     resp_safety = @response_safety.check(response_text)
@@ -209,11 +210,16 @@ class AgentService
     conversation.reload
     onboarding_progress = build_onboarding_state(conversation, effective_context)
 
-    # 12. Build suggested actions (use LLM-provided when present, else flow-graph step-appropriate defaults)
+    # 12. Build suggested actions — fallback priority:
+    #   1. LLM-provided (via set_suggested_actions tool)
+    #   2. Tool-aware (based on which tools actually executed this turn)
+    #   3. Flow-graph step-appropriate defaults (static per context/step)
     suggested = if llm_suggested_actions.present?
       llm_suggested_actions
     else
-      ContextBuilder.suggested_actions(effective_context, onboarding_progress).map do |action|
+      tool_suggestions = ContextBuilder.tool_aware_suggestions(executed_tools)
+      actions = tool_suggestions || ContextBuilder.suggested_actions(effective_context, onboarding_progress)
+      actions.map do |action|
         { label: action[:label], action_type: "message", payload: action[:payload] }
       end
     end
@@ -303,12 +309,15 @@ class AgentService
   # Multi-turn tool-calling loop.
   # Calls LLM -> if tool_use blocks, execute tools -> feed results back -> repeat.
   # Max MAX_TOOL_ROUNDS iterations.
-  # Returns { text:, therapist_results:, suggested_actions: } — suggested_actions when LLM calls set_suggested_actions.
+  # Returns { text:, therapist_results:, suggested_actions:, executed_tools: }
+  # suggested_actions populated when LLM calls set_suggested_actions.
+  # executed_tools tracks which tools ran this turn for fallback suggestion logic.
   def call_llm_with_tools(system_prompt:, messages:, auth:)
     text_parts = []
     last_therapist_results = nil
     last_appointment_results = nil
     llm_suggested_actions = nil
+    executed_tools = []
 
     MAX_TOOL_ROUNDS.times do |round|
       response = @llm_service.call(
@@ -340,7 +349,8 @@ class AgentService
           text: text_parts.join("\n"),
           therapist_results: last_therapist_results,
           appointment_results: last_appointment_results,
-          suggested_actions: llm_suggested_actions
+          suggested_actions: llm_suggested_actions,
+          executed_tools: executed_tools
         }
       end
 
@@ -365,13 +375,15 @@ class AgentService
           text: text_parts.join("\n"),
           therapist_results: last_therapist_results,
           appointment_results: last_appointment_results,
-          suggested_actions: llm_suggested_actions
+          suggested_actions: llm_suggested_actions,
+          executed_tools: executed_tools
         }
       end
 
       # Execute each tool and collect results
       tool_results = tool_uses.map do |tool_call|
         Rails.logger.info("Executing tool: #{tool_call['name']} (round #{round + 1})")
+        executed_tools << tool_call["name"]
         result = AgentTools.execute_tool(
           name: tool_call["name"],
           input: tool_call["input"] || {},
@@ -426,7 +438,8 @@ class AgentService
       text: text,
       therapist_results: last_therapist_results,
       appointment_results: last_appointment_results,
-      suggested_actions: llm_suggested_actions
+      suggested_actions: llm_suggested_actions,
+      executed_tools: executed_tools
     }
   end
 end
