@@ -1,6 +1,6 @@
-# Appointment Assistant — AI Treatment Plan Assistant
+# Appointment Assistant — AI Therapy Onboarding & Treatment Assistant
 
-AI-powered mental health treatment plan generation. Therapists upload session transcripts; the system generates structured, evidence-based treatment plans with citations, a client-friendly view, and safety flag detection.
+AI-powered mental health onboarding and treatment assistant. Helps clients with intake, document upload, therapist search, and appointment scheduling via a conversational chat agent. Includes treatment plan generation for therapists with safety evaluation built-in.
 
 ---
 
@@ -8,15 +8,16 @@ AI-powered mental health treatment plan generation. Therapists upload session tr
 
 | Layer | Choice |
 |-------|--------|
-| Database | PostgreSQL (JSONB for plan content) |
-| ORM | SQLAlchemy 2.0 (async) + Alembic |
-| Backend | Python 3.11+ + FastAPI (async) |
+| Backend | Ruby on Rails 7+ (API mode) |
+| ORM | ActiveRecord + Rails migrations |
+| Database | PostgreSQL (JSONB for plan content, onboarding progress) |
+| Serialization | Blueprinter |
 | AI Provider | Anthropic Claude Sonnet 4.6 |
-| AI Integration | Anthropic SDK (direct, no framework) |
+| AI Integration | anthropic-rb (Ruby SDK) |
 | Frontend | React 18 + Vite + TypeScript |
 | Styling | Tailwind CSS v4 + shadcn/ui |
-| Auth | JWT (demo-grade) |
-| Evaluation | textstat (readability) + Pydantic (structural) |
+| Auth | JWT (jwt gem + custom middleware) |
+| Testing | RSpec + FactoryBot (backend) |
 
 ---
 
@@ -29,15 +30,14 @@ AI-powered mental health treatment plan generation. Therapists upload session tr
 └─────────────────────┘         └──────────────┬───────────────┘
                                                │ HTTP / SSE
                                 ┌──────────────▼───────────────┐
-                                │  FastAPI Backend              │
-                                │  (port 8000)                  │
+                                │  Rails API Backend           │
+                                │  (port 3000 / 8000)          │
                                 │                               │
                                 │  ┌───────────────────────┐   │
-                                │  │  AI Pipeline Service   │   │
-                                │  │  1. Preprocess         │   │
-                                │  │  2. Therapist Plan     │◄──┼──► Claude Sonnet 4.6
-                                │  │  3. Client View        │   │
-                                │  │  4. Safety Scan        │   │
+                                │  │  AgentService          │   │
+                                │  │  InputSafety → Redact │◄──┼──► Claude Sonnet 4.6
+                                │  │  → LLM + Tools →       │   │
+                                │  │  ResponseSafety        │   │
                                 │  └───────────────────────┘   │
                                 │                               │
                                 └──────────────┬───────────────┘
@@ -53,34 +53,51 @@ AI-powered mental health treatment plan generation. Therapists upload session tr
 ## Quick Start
 
 ### Prerequisites
-- Python 3.11+
+- Ruby 3.x (rbenv recommended)
 - Node 18+
 - Docker + Docker Compose
+
+### Ruby setup (rbenv)
+
+Using macOS system Ruby (`/usr/bin/ruby`) will cause permission errors when installing gems. Use rbenv instead:
+
+```bash
+# Install rbenv (Homebrew)
+brew install rbenv ruby-build
+
+# Install project Ruby version
+rbenv install 3.3.10
+
+# Add to ~/.zshrc (or ~/.bashrc)
+eval "$(rbenv init - zsh)"
+
+# Restart shell, then:
+cd backend_rails
+bundle install
+```
 
 ### 1. Start PostgreSQL
 ```bash
 docker-compose up -d
 ```
 
-### 2. Backend Setup
+### 2. Backend (Rails) Setup
 ```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+cd backend_rails
+bundle install
 
 # Copy and configure environment
 cp .env.example .env
-# Edit .env — set ANTHROPIC_API_KEY to your key
+# Edit .env — set ANTHROPIC_API_KEY, DATABASE_URL
 
 # Run migrations
-alembic upgrade head
+bundle exec rails db:migrate
 
-# Seed demo data
-python -m app.seed
+# Seed demo data (required for demo sign-in)
+bundle exec rails db:seed
 
-# Start server
-uvicorn app.main:app --reload --port 8000
+# Start server (port 8000 — matches frontend default)
+bundle exec rails s -p 8000
 ```
 
 ### 3. Frontend Setup
@@ -88,7 +105,7 @@ uvicorn app.main:app --reload --port 8000
 cd frontend
 npm install
 npm run dev
-# Opens at http://localhost:5173
+# Opens at http://localhost:5173 (proxies API to backend on 8000)
 ```
 
 ### Demo Accounts
@@ -113,12 +130,12 @@ Deploy directly from GitHub with automatic deployments on push.
 ### 2. Add PostgreSQL
 
 1. In the project, click **+ New** → **Database** → **PostgreSQL**.
-2. Railway provisions PostgreSQL and exposes `DATABASE_URL` (and related vars) to other services.
+2. Railway provisions PostgreSQL and exposes `DATABASE_URL` to other services.
 
 ### 3. Add the app service
 
 1. Click **+ New** → **GitHub Repo** and select this repo again (or add a new service from the same repo).
-2. Railway detects the root `Dockerfile` and `railway.json` and builds the full-stack app (frontend + backend).
+2. Railway detects the root `Dockerfile` and `railway.json` and builds the full-stack app (frontend + Rails backend).
 
 ### 4. Configure variables
 
@@ -126,10 +143,12 @@ In the app service → **Variables**, add or reference:
 
 | Variable | Source | Notes |
 |----------|--------|-------|
-| `DATABASE_URL` | Reference from Postgres service | Use `${{Postgres.DATABASE_URL}}` (Railway injects it; app converts to `postgresql+asyncpg://` automatically) |
-| `ANTHROPIC_API_KEY` | Your key | Required for AI plan generation |
+| `DATABASE_URL` | Reference from Postgres service | Use `${{Postgres.DATABASE_URL}}` |
+| `ANTHROPIC_API_KEY` | Your key | Required for AI chat/plan generation |
 | `JWT_SECRET` | Random string | Use a strong secret in production |
 | `CORS_ORIGINS` | Your app URL | e.g. `https://your-app.up.railway.app` |
+| `RAILS_ENV` | `production` | Required for Rails |
+| `SECRET_KEY_BASE` | `rails secret` | Run `rails secret` locally to generate |
 
 ### 5. Connect Postgres to the app
 
@@ -153,17 +172,14 @@ https://your-app-name.up.railway.app
 
 ### Seeding production from local
 
-`railway run python -m app.seed` fails with `nodename nor servname provided, or not known` because Railway injects the **private** `DATABASE_URL` (only resolvable inside Railway). Use the **public** URL instead:
+To seed demo data in production (requires DB access from Railway CLI):
 
-1. **Enable TCP Proxy** on the Postgres service: **Settings** → **Networking** → ensure Public network TCP proxy is enabled (e.g. `shuttle.proxy.rlwy.net:port → :5432`).
+```bash
+cd backend_rails
+railway run bundle exec rails db:seed
+```
 
-2. **Add `DATABASE_PUBLIC_URL`** to the app service variables: **Variables** → **Add Reference** → select Postgres → `DATABASE_PUBLIC_URL`.
-
-3. **Run the seed** with the public URL:
-   ```bash
-   cd backend
-   USE_PUBLIC_DATABASE=1 railway run python -m app.seed
-   ```
+Railway injects `DATABASE_URL` at runtime; the app connects from within the Railway network. If seeding from your local machine fails (private URL not reachable), enable the Postgres **TCP Proxy** and add `DATABASE_PUBLIC_URL` as a reference, then run with that URL in your local env.
 
 ---
 
@@ -228,19 +244,15 @@ The evaluation framework validates AI output quality across 5 synthetic fixture 
 
 ### How to Run
 ```bash
-# Via API (streams SSE progress)
+# Via API (if evaluation endpoint is enabled)
 curl -N -X POST http://localhost:8000/api/evaluation/run \
   -H "Authorization: Bearer $TOKEN"
 
 # Or via the Evaluation page in the therapist dashboard
 # Navigate to /therapist/evaluation -> click "Run Evaluation"
 
-# Standalone scripts (run individual sections from CLI)
-cd backend
-source .venv/bin/activate
-python run_structural_eval.py   # Structural validation only
-python run_readability_eval.py  # Readability analysis only
-python run_safety_eval.py       # Safety detection only
+# Backend tests include safety, redaction, and plan validation
+cd backend_rails && bundle exec rspec spec/services/
 ```
 
 ### Fixture Transcripts
@@ -257,16 +269,21 @@ python run_safety_eval.py       # Safety detection only
 ## Testing
 
 ```bash
-cd backend
-source .venv/bin/activate
-pytest tests/ -v
+cd backend_rails
+bundle exec rspec
 ```
 
 ### Test Coverage
-- `test_ai_output_parsing.py` — Pydantic schema validation (valid, invalid, edge cases)
-- `test_safety_detection.py` — Regex flag detection + false positive resistance + deduplication
-- `test_plan_validation.py` — Citation bounds, jargon detection, risk data detection
-- `test_readability.py` — Grade level thresholds, clinical vs plain text comparison
+- `spec/services/redaction_service_spec.rb` — PII detection, stable tokens, restore
+- `spec/services/agent_service_spec.rb` — Intent routing, safety checks, tool execution
+- `spec/services/scheduling_service_spec.rb` — Slot generation, booking, therapist delegation
+- `spec/requests/agent_chat_spec.rb` — Chat endpoint auth, validation, response shape
+
+---
+
+## Reference: Python Backend
+
+The `backend/` directory contains the original Python/FastAPI implementation, kept as a reference during the Rails migration. For local development and deployment, use `backend_rails/`.
 
 ---
 

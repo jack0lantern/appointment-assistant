@@ -4,26 +4,28 @@
 
 | Layer | Choice |
 |-------|--------|
-| Backend | Python 3.11+ + FastAPI (async) |
-| ORM | SQLAlchemy 2.0 (async) + Alembic |
-| Database | PostgreSQL (port 5433, JSONB for plan content) |
-| AI | Anthropic SDK, Claude Sonnet 4.6 |
+| Backend | Ruby on Rails 7+ (API mode) |
+| ORM | ActiveRecord + Rails migrations |
+| Database | PostgreSQL (port 5433, JSONB for plan content, onboarding progress) |
+| Serialization | Blueprinter |
+| AI | anthropic-rb, Claude Sonnet 4.6 |
 | Frontend | React 18 + Vite + TypeScript |
 | Styling | Tailwind CSS v4 + shadcn/ui |
-| Auth | JWT (demo-grade) |
+| Auth | JWT (jwt gem) + custom middleware |
 | Storage | S3/MinIO for recordings |
 | Realtime | LiveKit (voice/agents) |
-| Evaluation | textstat (readability), Pydantic (structural) |
+| Testing | RSpec + FactoryBot |
 
 ## Key Paths
 
-- `backend/app/` — Models, schemas, routes, services, prompts, utils
-- `backend/app/schemas/` — Pydantic contracts (auth, client, session, treatment_plan, safety, homework, evaluation)
-- `backend/app/services/ai_pipeline.py` — Two-stage AI pipeline (therapist plan → client view)
-- `backend/app/utils/safety_patterns.py` — Regex safety detection
+- `backend_rails/app/` — Controllers, models, services, blueprints
+- `backend_rails/app/services/agent_service.rb` — Chat agent pipeline orchestration
+- `backend_rails/app/services/redaction_service.rb` — PII masking before LLM
+- `backend_rails/app/services/` — InputSafety, SchedulingService, TherapistSearchService, etc.
+- `backend_rails/app/blueprints/` — JSON serializers (contracts)
 - `frontend/src/` — React app, pages, components
+- `backend/` — Python reference implementation (legacy)
 
 ## Env & Config
 
-- `backend/.env` — ANTHROPIC_API_KEY, DATABASE_URL, JWT_SECRET, S3_*, LIVEKIT_*, ASSEMBLYAI_API_KEY
-- Use `backend/.venv` — never create a new venv (per `.cursor/rules/python-venv.mdc`)
+- `backend_rails/.env` — ANTHROPIC_API_KEY, DATABASE_URL, JWT_SECRET, CORS_ORIGINS

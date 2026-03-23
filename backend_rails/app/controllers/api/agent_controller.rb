@@ -13,6 +13,12 @@ module Api
         return
       end
 
+      unless ENV["ANTHROPIC_API_KEY"].present?
+        render json: { error: "AI service is not configured. Set ANTHROPIC_API_KEY in .env" },
+          status: :service_unavailable
+        return
+      end
+
       service = AgentService.new
       response = service.process_message(
         message: message,

@@ -55,7 +55,9 @@ class AgentService
         suggested_actions: [],
         follow_up_questions: [],
         safety: { flagged: false, flag_type: nil, escalated: false },
-        context_type: conversation.context_type
+        context_type: conversation.context_type,
+        therapist_results: nil,
+        onboarding_state: build_onboarding_state(conversation, conversation.context_type)
       }
     end
 
@@ -88,7 +90,9 @@ class AgentService
             suggested_actions: [],
             follow_up_questions: [],
             safety: { flagged: true, flag_type: "medium", escalated: true },
-            context_type: conversation.context_type
+            context_type: conversation.context_type,
+            therapist_results: nil,
+            onboarding_state: build_onboarding_state(conversation, conversation.context_type)
           }
         end
       end
@@ -112,7 +116,9 @@ class AgentService
         ],
         follow_up_questions: [],
         safety: { flagged: true, flag_type: "crisis", escalated: true },
-        context_type: "emotional_support"
+        context_type: "emotional_support",
+        therapist_results: nil,
+        onboarding_state: build_onboarding_state(conversation, "emotional_support")
       }
     end
 
@@ -164,17 +170,21 @@ class AgentService
     end
 
     # 8. Call LLM with tool loop
+    llm_response = {}
     begin
-      response_text = call_llm_with_tools(
+      llm_response = call_llm_with_tools(
         system_prompt: system_prompt,
         messages: ctx[:messages],
         auth: auth
       )
     rescue StandardError => e
       Rails.logger.error("LLM call failed: #{e.message}")
-      response_text = "I'm sorry, I'm having trouble processing your request right now. " \
-        "Please try again in a moment, or contact support if this continues."
+      llm_response = { text: "I'm sorry, I'm having trouble processing your request right now. " \
+        "Please try again in a moment, or contact support if this continues." }
     end
+
+    response_text = llm_response[:text] || llm_response["text"] || ""
+    therapist_results = llm_response[:therapist_results] || llm_response["therapist_results"]
 
     # 9. Response safety check
     resp_safety = @response_safety.check(response_text)
@@ -192,6 +202,10 @@ class AgentService
 
     # Update conversation context type if it changed
     conversation.update!(context_type: effective_context) if conversation.context_type != effective_context
+
+    # Reload onboarding progress (may have been updated by tools like confirm_therapist, upload_document)
+    conversation.reload
+    onboarding_progress = build_onboarding_state(conversation, effective_context)
 
     # 12. Build suggested actions
     suggested = ContextBuilder.suggested_actions(effective_context).map do |action|
@@ -212,7 +226,9 @@ class AgentService
       suggested_actions: suggested,
       follow_up_questions: [],
       safety: { flagged: false, flag_type: nil, escalated: false },
-      context_type: effective_context
+      context_type: effective_context,
+      therapist_results: therapist_results,
+      onboarding_state: onboarding_progress
     }
   end
 
@@ -254,11 +270,36 @@ class AgentService
     conversation.messages.create!(role: role, content: content)
   end
 
+  # Build frontend OnboardingState from conversation. Returns nil when not in onboarding context.
+  def build_onboarding_state(conversation, effective_context)
+    return nil unless effective_context == "onboarding"
+
+    progress = conversation.onboarding
+    docs_verified = progress.docs_verified || false
+    therapist_selected = progress.selected_therapist_id.present?
+
+    step = if progress.appointment_id.present?
+      "complete"
+    elsif progress.selected_therapist_id.present?
+      "schedule"
+    elsif docs_verified
+      "therapist"
+    elsif progress.has_completed_intake
+      "documents"
+    else
+      "intake"
+    end
+
+    { step: step, docs_verified: docs_verified, therapist_selected: therapist_selected }
+  end
+
   # Multi-turn tool-calling loop.
   # Calls LLM -> if tool_use blocks, execute tools -> feed results back -> repeat.
   # Max MAX_TOOL_ROUNDS iterations.
+  # Returns { text:, therapist_results: } — therapist_results when last tool was search_therapists.
   def call_llm_with_tools(system_prompt:, messages:, auth:)
     text_parts = []
+    last_therapist_results = nil
 
     MAX_TOOL_ROUNDS.times do |round|
       response = @llm_service.call(
@@ -284,8 +325,33 @@ class AgentService
         end
       end
 
-      # No tool calls — return the text
-      return text_parts.join("\n") if tool_uses.empty?
+      # No tool calls — return the text and any therapist results
+      if tool_uses.empty?
+        return {
+          text: text_parts.join("\n"),
+          therapist_results: last_therapist_results
+        }
+      end
+
+      # Execute each tool and collect results
+      tool_results = tool_uses.map do |tool_call|
+        Rails.logger.info("Executing tool: #{tool_call['name']} (round #{round + 1})")
+        result = AgentTools.execute_tool(
+          name: tool_call["name"],
+          input: tool_call["input"] || {},
+          auth_context: auth
+        )
+        # Capture therapist search results for frontend rich rendering
+        therapists = result[:therapists] || result["therapists"]
+        if tool_call["name"] == "search_therapists" && result.is_a?(Hash) && therapists.present?
+          last_therapist_results = therapists
+        end
+        {
+          type: "tool_result",
+          tool_use_id: tool_call["id"],
+          content: result.to_json
+        }
+      end
 
       # Build assistant message with full content blocks
       assistant_content = content_blocks.map do |block|
@@ -298,26 +364,11 @@ class AgentService
       end.compact
 
       messages << { role: "assistant", content: assistant_content }
-
-      # Execute each tool and collect results
-      tool_results = tool_uses.map do |tool_call|
-        Rails.logger.info("Executing tool: #{tool_call['name']} (round #{round + 1})")
-        result = AgentTools.execute_tool(
-          name: tool_call["name"],
-          input: tool_call["input"] || {},
-          auth_context: auth
-        )
-        {
-          type: "tool_result",
-          tool_use_id: tool_call["id"],
-          content: result.to_json
-        }
-      end
-
       messages << { role: "user", content: tool_results }
     end
 
     # Exhausted all rounds
-    text_parts.any? ? text_parts.join("\n") : "I'm sorry, I wasn't able to complete that action. Please try again."
+    text = text_parts.any? ? text_parts.join("\n") : "I'm sorry, I wasn't able to complete that action. Please try again."
+    { text: text, therapist_results: last_therapist_results }
   end
 end

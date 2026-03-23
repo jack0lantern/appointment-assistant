@@ -20,6 +20,7 @@ const PlanView = lazy(() => import('./pages/client/PlanView'))
 const Sessions = lazy(() => import('./pages/client/Sessions'))
 const Homework = lazy(() => import('./pages/client/Homework'))
 const JoinLiveSession = lazy(() => import('./pages/client/JoinLiveSession'))
+const Onboard = lazy(() => import('./pages/client/Onboard'))
 
 function PageLoader() {
   return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>
@@ -31,6 +32,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/onboard/:slug" element={<Onboard />} />
 
         {/* Therapist routes */}
         <Route element={<TherapistLayout />}>

@@ -5,10 +5,29 @@ export type AgentContextType =
   | 'document_upload'
   | 'general'
 
+export interface TherapistSearchResult {
+  display_label: string
+  name: string
+  license_type: string
+  specialties: string[]
+  bio?: string
+}
+
+export interface DocumentUploadResult {
+  document_ref: string
+  status: string
+  redacted_preview?: string
+  fields?: Array<{ field_name: string; value: string }>
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp?: string
+  /** Rich content type for structured rendering */
+  rich_type?: 'therapist_results' | 'document_status' | 'text'
+  therapist_results?: TherapistSearchResult[]
+  document_result?: DocumentUploadResult
 }
 
 export interface SuggestedAction {
@@ -37,4 +56,12 @@ export interface AgentChatResponse {
   follow_up_questions: string[]
   safety: SafetyMeta
   context_type: AgentContextType
+  therapist_results?: TherapistSearchResult[]
+  onboarding_state?: OnboardingState | null
+}
+
+export interface OnboardingState {
+  step: 'intake' | 'documents' | 'therapist' | 'schedule' | 'complete'
+  docs_verified: boolean
+  therapist_selected: boolean
 }

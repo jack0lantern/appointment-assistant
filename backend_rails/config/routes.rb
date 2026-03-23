@@ -5,6 +5,9 @@ Rails.application.routes.draw do
   post "api/auth/login" => "auth#login"
 
   namespace :api do
+    get "clients" => "clients#index"
+    post "clients" => "clients#create"
+
     post "agent/chat" => "agent#chat"
     get "agent/scheduling/availability" => "agent_scheduling#availability"
     post "agent/scheduling/book" => "agent_scheduling#book"
@@ -13,5 +16,19 @@ Rails.application.routes.draw do
     post "agent/documents/upload" => "documents#upload"
 
     get "onboard/:slug" => "onboard#show"
+
+    # Evaluation (SSE streaming)
+    post "evaluation/run" => "evaluations#run"
+    post "evaluation/run/structural" => "evaluations#run_structural"
+    post "evaluation/run/readability" => "evaluations#run_readability"
+    post "evaluation/run/safety" => "evaluations#run_safety"
+    post "evaluation/stop" => "evaluations#stop"
+    get "evaluation/results" => "evaluations#results"
   end
+
+  # SPA fallback: serve index.html for non-API paths (Docker deployment)
+  root to: "static#index"
+  get "*path", to: "static#index", constraints: ->(req) {
+    !req.path.start_with?("/api") && !req.path.start_with?("/health") && !req.path.start_with?("/up")
+  }
 end

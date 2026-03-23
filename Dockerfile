@@ -6,16 +6,33 @@ RUN npm ci --legacy-peer-deps
 COPY frontend/ ./
 RUN npm run build
 
-# Stage 2: Backend + serve frontend
-FROM python:3.11-slim
+# Stage 2: Rails backend + serve frontend
+FROM ruby:3.3-alpine AS backend
+
+# Build dependencies for native gems and Rails
+RUN apk add --no-cache \
+    build-base \
+    libxml2-dev \
+    libxslt-dev \
+    postgresql-dev \
+    tzdata
+
 WORKDIR /app
 
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY backend/ .
-COPY --from=frontend /app/dist ./static
+# Install gems
+COPY backend_rails/Gemfile backend_rails/Gemfile.lock ./
+RUN bundle config set --local deployment 'true' \
+    && bundle config set --local without 'development test' \
+    && bundle install -j4
+
+# Copy Rails app
+COPY backend_rails/ ./
+
+# Copy built frontend into public/
+COPY --from=frontend /app/dist ./public
 
 ENV PORT=8000
+ENV RAILS_ENV=production
 EXPOSE 8000
 
-CMD ["sh", "-c", "timeout 30 alembic upgrade head 2>&1 || echo 'WARN: migration failed or timed out'; exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "bundle exec rails db:migrate 2>&1 || echo 'WARN: migration failed or skipped'; exec bundle exec puma -C config/puma.rb -p ${PORT:-8000}"]

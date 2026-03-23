@@ -2,6 +2,8 @@
 
 This document maps the chat agent's processing pipeline as a directed graph. It is designed to inform a LangGraph implementation where each stage becomes a node and edges represent transitions with conditional routing.
 
+**Implementation:** The pipeline is implemented in Rails (`backend_rails/app/services/agent_service.rb`) as a sequence of service objects: `InputSafetyService` → `RedactionService` → `ContextBuilder` → `LlmService` (+ tool loop) → `ResponseSafetyService`.
+
 ---
 
 ## High-Level Graph

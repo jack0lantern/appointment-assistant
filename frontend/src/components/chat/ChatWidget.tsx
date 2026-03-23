@@ -5,11 +5,14 @@ import { useChat } from '@/hooks/useChat'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import QuickActions from './QuickActions'
+import OnboardingProgress from './OnboardingProgress'
+import DocumentUpload from './DocumentUpload'
 import type { AgentContextType, SuggestedAction } from '@/types/agent'
 
 interface ChatWidgetProps {
   contextType?: AgentContextType
   pageContext?: Record<string, unknown>
+  initialConversationId?: string
 }
 
 const DEFAULT_ACTIONS: SuggestedAction[] = [
@@ -18,24 +21,27 @@ const DEFAULT_ACTIONS: SuggestedAction[] = [
   { label: "I'm feeling overwhelmed", action_type: 'message', payload: "I'm feeling overwhelmed right now" },
 ]
 
-export default function ChatWidget({ contextType = 'general', pageContext }: ChatWidgetProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export default function ChatWidget({ contextType = 'general', pageContext, initialConversationId }: ChatWidgetProps) {
+  const [isOpen, setIsOpen] = useState(!!initialConversationId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { messages, isLoading, error, suggestedActions, sendMessage, clearChat } = useChat({
-    contextType,
-    pageContext,
-  })
+  const {
+    messages, isLoading, error, suggestedActions,
+    onboardingState, sendMessage, uploadDocument, clearChat,
+  } = useChat({ contextType, pageContext, initialConversationId })
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
   const activeActions = messages.length === 0 ? DEFAULT_ACTIONS : suggestedActions
+  const showDocUpload = onboardingState?.step === 'documents' && !onboardingState.docs_verified
+
+  const handleSelectTherapist = (displayLabel: string) => {
+    sendMessage(`I'd like to go with ${displayLabel}`)
+  }
 
   return (
     <>
-      {/* Floating trigger button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -48,7 +54,6 @@ export default function ChatWidget({ contextType = 'general', pageContext }: Cha
         </button>
       )}
 
-      {/* Chat panel */}
       {isOpen && (
         <div
           className="fixed bottom-6 right-6 z-50 flex w-[380px] flex-col rounded-2xl border
@@ -83,6 +88,9 @@ export default function ChatWidget({ contextType = 'general', pageContext }: Cha
             </div>
           </div>
 
+          {/* Onboarding progress indicator */}
+          {onboardingState && <OnboardingProgress state={onboardingState} />}
+
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
             {messages.length === 0 && (
@@ -93,7 +101,11 @@ export default function ChatWidget({ contextType = 'general', pageContext }: Cha
             )}
 
             {messages.map((msg, i) => (
-              <ChatMessage key={i} message={msg} />
+              <ChatMessage
+                key={i}
+                message={msg}
+                onSelectTherapist={handleSelectTherapist}
+              />
             ))}
 
             {isLoading && (
@@ -116,6 +128,11 @@ export default function ChatWidget({ contextType = 'general', pageContext }: Cha
 
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Document upload widget (shown during documents step) */}
+          {showDocUpload && (
+            <DocumentUpload onUpload={uploadDocument} disabled={isLoading} />
+          )}
 
           {/* Quick actions */}
           <QuickActions
