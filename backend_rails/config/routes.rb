@@ -3,10 +3,16 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   post "api/auth/login" => "auth#login"
+  post "api/auth/client/login" => "auth#client_login"
+  post "api/auth/therapist/login" => "auth#therapist_login"
 
   namespace :api do
     get "clients" => "clients#index"
     post "clients" => "clients#create"
+    get "clients/:id" => "clients#show"
+
+    get "therapist/appointments" => "therapist_appointments#index"
+    get "my/appointments" => "client_appointments#index"
 
     post "agent/chat" => "agent#chat"
     get "agent/scheduling/availability" => "agent_scheduling#availability"

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/context/AuthContext'
 import api from '@/api/client'
-import type { TreatmentPlan, HomeworkItem, Session } from '@/types'
+import type { TreatmentPlan, HomeworkItem, Session, ClientAppointment } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import WelcomeCard from '@/components/client/WelcomeCard'
@@ -36,6 +36,15 @@ export default function Dashboard() {
     },
   })
 
+  const { data: appointmentsData } = useQuery<{ appointments: ClientAppointment[] }>({
+    queryKey: ['clientAppointments'],
+    queryFn: async () => {
+      const { data } = await api.get<{ appointments: ClientAppointment[] }>('/api/my/appointments')
+      return data
+    },
+  })
+
+  const upcomingAppointments = appointmentsData?.appointments ?? []
   const incompleteHomework = homework?.filter((h) => !h.completed).length ?? 0
   const recentSessions = sessions?.slice(0, 3) ?? []
 
@@ -55,6 +64,41 @@ export default function Dashboard() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Upcoming Appointments */}
+      {upcomingAppointments.length > 0 && (
+        <div>
+          <h3 className="mb-3 text-lg font-semibold text-slate-800">Upcoming Appointments</h3>
+          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+            {upcomingAppointments.map((apt) => (
+              <div
+                key={apt.session_id}
+                className="flex items-center justify-between px-4 py-3"
+              >
+                <div>
+                  <p className="font-medium text-slate-900">{apt.therapist_name}</p>
+                  <p className="text-sm text-slate-500">
+                    {new Date(apt.session_date).toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}{' '}
+                    at {new Date(apt.session_date).toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}{' '}
+                    · {apt.duration_minutes} min
+                  </p>
+                </div>
+                <span className="inline-flex items-center rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-700">
+                  Scheduled
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Treatment Plan card */}

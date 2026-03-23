@@ -301,6 +301,59 @@ RSpec.describe AgentService do
 
         expect(result[:message]).to include("does not provide medical advice")
       end
+
+      it "does not append disclaimer when LLM already included equivalent text (avoids duplication with therapist cards)" do
+        llm_text = "Here are some therapists that might be a good fit.\n\n---\n*This is an AI assistant and does not provide medical advice, diagnoses, or treatment recommendations. Always consult a qualified healthcare provider for medical questions.*"
+        stub_llm_text_response(llm_text)
+
+        result = service.process_message(
+          message: "I need a therapist for anxiety",
+          user: user,
+          context_type: "onboarding"
+        )
+
+        # Disclaimer should appear exactly once, not twice
+        expect(result[:message].scan("does not provide medical advice").count).to eq(1)
+      end
+    end
+
+    context "dynamic suggested actions from LLM" do
+      let(:user) { create(:user, :client) }
+
+      it "uses suggested_actions from set_suggested_actions tool when LLM presents options" do
+        # LLM returns text + set_suggested_actions tool with options matching its response
+        allow(mock_llm).to receive(:call).and_return(
+          "content" => [
+            { "type" => "text", "text" => "What brings you to therapy? For example, anxiety, depression, or relationship challenges?" },
+            {
+              "type" => "tool_use",
+              "id" => "tool_sugg",
+              "name" => "set_suggested_actions",
+              "input" => {
+                "actions" => [
+                  { "label" => "Anxiety", "payload" => "I'm dealing with anxiety" },
+                  { "label" => "Depression", "payload" => "I'm dealing with depression" },
+                  { "label" => "Relationships", "payload" => "I'm dealing with relationship challenges" }
+                ]
+              }
+            }
+          ]
+        )
+
+        result = service.process_message(
+          message: "I'm new and want to get started",
+          user: user,
+          context_type: "general"
+        )
+
+        labels = result[:suggested_actions].map { |a| a[:label] }
+        expect(labels).to contain_exactly("Anxiety", "Depression", "Relationships")
+        expect(result[:suggested_actions].map { |a| a[:payload] }).to contain_exactly(
+          "I'm dealing with anxiety",
+          "I'm dealing with depression",
+          "I'm dealing with relationship challenges"
+        )
+      end
     end
 
     context "tool-calling loop" do

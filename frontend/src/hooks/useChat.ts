@@ -92,7 +92,12 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
                 rich_type: 'therapist_results' as const,
                 therapist_results: data.therapist_results,
               }
-            : {}),
+            : data.appointment_results?.length
+              ? {
+                  rich_type: 'appointment_results' as const,
+                  appointment_results: data.appointment_results,
+                }
+              : {}),
         }
         setMessages((prev) => [...prev, assistantMsg])
         setSuggestedActions(data.suggested_actions)

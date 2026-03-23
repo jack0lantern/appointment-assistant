@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-export default function Login() {
+export default function TherapistLogin() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -19,10 +19,13 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const user = await login(email, password)
-      navigate(user.role === 'therapist' ? '/therapist/dashboard' : '/client/dashboard')
-    } catch {
-      setError('Invalid email or password')
+      await login(email, password, 'therapist')
+      navigate('/therapist/dashboard')
+    } catch (err: unknown) {
+      const msg = err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { data?: { error?: string } } }).response?.data?.error ?? 'Invalid email or password'
+        : 'Invalid email or password'
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -30,10 +33,10 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Appointment Assistant</CardTitle>
-          <p className="text-sm text-muted-foreground">Sign in to your account</p>
+          <CardTitle className="text-2xl">Therapist Portal</CardTitle>
+          <p className="text-sm text-muted-foreground">Sign in to manage your practice</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -63,9 +66,13 @@ export default function Login() {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          <div className="mt-4 text-xs text-muted-foreground text-center space-y-1">
+          <div className="mt-4 text-center">
+            <Link to="/login" className="text-sm text-slate-600 hover:text-slate-900">
+              ← Back to login
+            </Link>
+          </div>
+          <div className="mt-4 text-xs text-muted-foreground text-center">
             <p>Demo: therapist@demo.health / demo123</p>
-            <p>Demo: client@demo.health / demo123</p>
           </div>
         </CardContent>
       </Card>

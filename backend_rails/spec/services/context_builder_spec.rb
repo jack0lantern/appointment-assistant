@@ -120,5 +120,27 @@ RSpec.describe ContextBuilder do
       actions = described_class.suggested_actions("unknown_type")
       expect(actions).to eq(described_class.suggested_actions("general"))
     end
+
+    it "returns step-specific actions for onboarding when onboarding_state has step" do
+      # therapist step: "Would you like me to help you find a therapist?" → possible next steps
+      actions = described_class.suggested_actions("onboarding", { step: "therapist", docs_verified: true, therapist_selected: false })
+      labels = actions.map { |a| a[:label].downcase }
+      expect(labels).to include("yes, help me find a therapist")
+      expect(labels).to include("tell me about specialties")
+      expect(labels).not_to include("start onboarding")
+
+      # documents step
+      actions = described_class.suggested_actions("onboarding", { step: "documents", docs_verified: false, therapist_selected: false })
+      labels = actions.map { |a| a[:label].downcase }
+      expect(labels).to include("upload insurance card")
+      expect(labels).to include("upload id")
+    end
+
+    it "falls back to generic onboarding when onboarding_state step is nil" do
+      actions = described_class.suggested_actions("onboarding", { step: nil, docs_verified: false, therapist_selected: false })
+      labels = actions.map { |a| a[:label].downcase }
+      expect(labels).to include("start onboarding")
+      expect(labels).to include("upload a document")
+    end
   end
 end

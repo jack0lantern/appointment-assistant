@@ -36,6 +36,14 @@ RSpec.describe SchedulingService do
       expect(ids.uniq.size).to eq(ids.size)
     end
 
+    it "uses time-based slot IDs (therapist_id:ISO8601)" do
+      slots = described_class.generate_demo_slots(therapist_id: 42)
+      slots.each do |slot|
+        expect(slot[:id]).to match(/\A\d+:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
+        expect(slot[:id]).to start_with("42:")
+      end
+    end
+
     it "includes correct therapist_id" do
       slots = described_class.generate_demo_slots(therapist_id: 42)
       slots.each do |slot|
@@ -68,6 +76,7 @@ RSpec.describe SchedulingService do
   describe ".book_appointment" do
     let(:therapist) { create(:therapist) }
     let(:client) { create(:client, therapist: therapist) }
+    let(:slot_id) { described_class.get_availability(therapist_id: therapist.id).first[:id] }
 
     before(:each) { SchedulingService.clear_booked_slots! }
 
@@ -75,7 +84,7 @@ RSpec.describe SchedulingService do
       result = described_class.book_appointment(
         client_id: client.id,
         therapist_id: therapist.id,
-        slot_id: "slot-1-1"
+        slot_id: slot_id
       )
       expect(result[:status]).to eq("confirmed")
       expect(result[:session_id]).to be_present
@@ -86,7 +95,7 @@ RSpec.describe SchedulingService do
         described_class.book_appointment(
           client_id: 99999,
           therapist_id: therapist.id,
-          slot_id: "slot-1-1"
+          slot_id: slot_id
         )
       }.to raise_error(described_class::NotFoundError)
     end
@@ -97,7 +106,7 @@ RSpec.describe SchedulingService do
         described_class.book_appointment(
           client_id: client.id,
           therapist_id: therapist.id,
-          slot_id: "slot-1-1",
+          slot_id: slot_id,
           acting_therapist_id: other_therapist.id
         )
       }.to raise_error(described_class::AuthorizationError)
@@ -107,7 +116,7 @@ RSpec.describe SchedulingService do
       result = described_class.book_appointment(
         client_id: client.id,
         therapist_id: therapist.id,
-        slot_id: "slot-1-1",
+        slot_id: slot_id,
         acting_therapist_id: therapist.id
       )
       expect(result[:status]).to eq("confirmed")

@@ -42,6 +42,26 @@ RSpec.describe OnboardingRouter do
       end
     end
 
+    context "Jordan demo user (always new patient)" do
+      it "routes Jordan as new patient even with existing Client/therapist" do
+        therapist = create(:therapist)
+        user = User.find_or_create_by!(email: OnboardingRouter::DEMO_NEW_PATIENT_EMAIL) do |u|
+          u.name = "Jordan Kim"
+          u.role = "client"
+          u.password = "demo123"
+        end
+        Client.find_or_create_by!(user: user) { |c| c.therapist = therapist; c.name = "Jordan Kim" }
+        user.reload
+        conversation = create(:conversation, user: user, context_type: "onboarding")
+
+        result = described_class.route(user: user, conversation: conversation)
+
+        expect(result[:context_type]).to eq("onboarding")
+        expect(result[:onboarding_progress].is_new_user).to be true
+        expect(result[:onboarding_progress].has_completed_intake).to be false
+      end
+    end
+
     context "returning users with therapist" do
       let(:user) { create(:user, :client) }
       let(:conversation) { create(:conversation, user: user, context_type: "onboarding") }

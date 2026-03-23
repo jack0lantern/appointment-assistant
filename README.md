@@ -114,6 +114,7 @@ npm run dev
 |------|-------|----------|
 | Therapist | therapist@demo.health | demo123 |
 | Client | client@demo.health | demo123 |
+| Client (new patient flow) | jordan.kim@demo.health | demo123 |
 
 ---
 

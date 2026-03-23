@@ -2,6 +2,7 @@ class ContextBuilder
   BASE_RULES = <<~RULES
 
     RULES:
+    - When you present the user with specific options or follow-up choices (e.g. "what brings you to therapy?" with examples like anxiety, depression, relationship challenges), call the set_suggested_actions tool with those options. The buttons will then match what you offered. Each action needs a short label (button text) and payload (the message sent when tapped). Use 3–5 options.
     - Be warm, concise, and validating.
     - NEVER provide diagnoses, medication advice, prescription recommendations, or clinical recommendations of any kind.
     - NEVER suggest, recommend, or discuss specific medications, supplements, dosages, or treatments. If asked about medication, direct the user to their prescribing provider or therapist.
@@ -33,7 +34,12 @@ class ContextBuilder
       "and walk them through the process.\n" \
       "When the user asks to schedule, first call get_current_datetime to know today's date, " \
       "then call get_available_slots to find open times. Present the options clearly. " \
-      "When the user picks a slot, call book_appointment with the correct slot_id." + BASE_RULES,
+      "When the user picks a slot, call book_appointment with the correct slot_id.\n" \
+      "When the user asks to cancel an appointment, first call list_appointments to show their " \
+      "upcoming appointments. If there are any, the frontend will display them as selectable cards. " \
+      "Ask which one they want to cancel — when they tap a card they will send a message like " \
+      "'Cancel session X'; use that session_id in cancel_appointment. If there are no appointments, " \
+      "tell them so." + BASE_RULES,
 
     "emotional_support" =>
       "You are a supportive AI assistant. The user appears to be " \
@@ -50,16 +56,40 @@ class ContextBuilder
       "upload process and confirm extracted information." + BASE_RULES
   }.freeze
 
+  # Flow-graph aligned suggested actions by context type.
+  # Onboarding step-specific actions override generic onboarding when step is known.
   SUGGESTED_ACTIONS = {
     "general" => [
       { label: "Help me get started", payload: "I'm new and want to get started" },
-      { label: "Schedule an appointment", payload: "I'd like to schedule an appointment" },
-      { label: "I'm feeling overwhelmed", payload: "I'm feeling overwhelmed right now" }
+      { label: "Schedule an appointment", payload: "I'd like to schedule an appointment" }
     ],
     "onboarding" => [
       { label: "Start onboarding", payload: "I'd like to start the onboarding process" },
       { label: "Upload a document", payload: "I want to upload my insurance card" },
       { label: "What do I need?", payload: "What information do I need to provide?" }
+    ],
+    # Onboarding step-specific: possible next steps per flow graph
+    "onboarding_intake" => [
+      { label: "Start onboarding", payload: "I'd like to start the onboarding process" },
+      { label: "What do I need?", payload: "What information do I need to provide?" }
+    ],
+    "onboarding_documents" => [
+      { label: "Upload insurance card", payload: "I want to upload my insurance card" },
+      { label: "Upload ID", payload: "I want to upload my ID" },
+      { label: "What documents do I need?", payload: "What documents do I need to provide?" }
+    ],
+    "onboarding_therapist" => [
+      { label: "Yes, help me find a therapist", payload: "Yes, I'd like help finding a therapist" },
+      { label: "Tell me about specialties", payload: "What specialties do you have?" },
+      { label: "I have a therapist assigned", payload: "I already have a therapist assigned" }
+    ],
+    "onboarding_schedule" => [
+      { label: "Find available times", payload: "What times are available this week?" },
+      { label: "Book my appointment", payload: "I'd like to book an appointment" }
+    ],
+    "onboarding_complete" => [
+      { label: "Find available times", payload: "What times are available?" },
+      { label: "Reschedule", payload: "I need to reschedule my appointment" }
     ],
     "scheduling" => [
       { label: "Find available times", payload: "What times are available this week?" },
@@ -108,10 +138,17 @@ class ContextBuilder
   end
 
   # Return suggested actions for a given context type.
+  # When context is onboarding and onboarding_state is present, returns step-specific
+  # "possible next steps" per the flow graph instead of generic onboarding actions.
   #
   # @param context_type [String]
+  # @param onboarding_state [Hash, nil] { step:, docs_verified:, therapist_selected: }
   # @return [Array<Hash>]
-  def self.suggested_actions(context_type)
+  def self.suggested_actions(context_type, onboarding_state = nil)
+    if context_type == "onboarding" && onboarding_state&.dig(:step).present?
+      step_key = "onboarding_#{onboarding_state[:step]}"
+      return SUGGESTED_ACTIONS.fetch(step_key, SUGGESTED_ACTIONS["onboarding"])
+    end
     SUGGESTED_ACTIONS.fetch(context_type, SUGGESTED_ACTIONS["general"])
   end
 

@@ -130,7 +130,7 @@ class AgentService
     redirected_from_scheduling = false
     onboarding_state = nil
 
-    if effective_context == "onboarding" || (effective_context == "scheduling" && auth.role == "client" && auth.client_id.nil?)
+    if effective_context == "onboarding" || (effective_context == "scheduling" && auth.role == "client")
       routing = OnboardingRouter.route(user: user, conversation: conversation)
       onboarding_state = routing[:onboarding_progress]
 
@@ -185,6 +185,8 @@ class AgentService
 
     response_text = llm_response[:text] || llm_response["text"] || ""
     therapist_results = llm_response[:therapist_results] || llm_response["therapist_results"]
+    appointment_results = llm_response[:appointment_results] || llm_response["appointment_results"]
+    llm_suggested_actions = llm_response[:suggested_actions] || llm_response["suggested_actions"]
 
     # 9. Response safety check
     resp_safety = @response_safety.check(response_text)
@@ -193,8 +195,8 @@ class AgentService
       response_text = resp_safety[:replacement]
     end
 
-    # 10. Append disclaimer
-    response_text += DISCLAIMER
+    # 10. Append disclaimer (skip if LLM already included equivalent text)
+    response_text += DISCLAIMER unless response_text.include?("does not provide medical advice")
 
     # 11. Persist messages
     save_message(conversation: conversation, role: "user", content: redacted_message)
@@ -207,9 +209,13 @@ class AgentService
     conversation.reload
     onboarding_progress = build_onboarding_state(conversation, effective_context)
 
-    # 12. Build suggested actions
-    suggested = ContextBuilder.suggested_actions(effective_context).map do |action|
-      { label: action[:label], action_type: "message", payload: action[:payload] }
+    # 12. Build suggested actions (use LLM-provided when present, else flow-graph step-appropriate defaults)
+    suggested = if llm_suggested_actions.present?
+      llm_suggested_actions
+    else
+      ContextBuilder.suggested_actions(effective_context, onboarding_progress).map do |action|
+        { label: action[:label], action_type: "message", payload: action[:payload] }
+      end
     end
 
     if redirected_from_scheduling
@@ -228,6 +234,7 @@ class AgentService
       safety: { flagged: false, flag_type: nil, escalated: false },
       context_type: effective_context,
       therapist_results: therapist_results,
+      appointment_results: appointment_results,
       onboarding_state: onboarding_progress
     }
   end
@@ -296,10 +303,12 @@ class AgentService
   # Multi-turn tool-calling loop.
   # Calls LLM -> if tool_use blocks, execute tools -> feed results back -> repeat.
   # Max MAX_TOOL_ROUNDS iterations.
-  # Returns { text:, therapist_results: } — therapist_results when last tool was search_therapists.
+  # Returns { text:, therapist_results:, suggested_actions: } — suggested_actions when LLM calls set_suggested_actions.
   def call_llm_with_tools(system_prompt:, messages:, auth:)
     text_parts = []
     last_therapist_results = nil
+    last_appointment_results = nil
+    llm_suggested_actions = nil
 
     MAX_TOOL_ROUNDS.times do |round|
       response = @llm_service.call(
@@ -325,11 +334,38 @@ class AgentService
         end
       end
 
-      # No tool calls — return the text and any therapist results
+      # No tool calls — return the text, therapist/appointment results, and any captured suggested actions
       if tool_uses.empty?
         return {
           text: text_parts.join("\n"),
-          therapist_results: last_therapist_results
+          therapist_results: last_therapist_results,
+          appointment_results: last_appointment_results,
+          suggested_actions: llm_suggested_actions
+        }
+      end
+
+      # If the only tool is set_suggested_actions (and we have text), capture and return early
+      # so we don't feed the result back — the buttons should match the options in the response
+      only_suggested_actions = tool_uses.all? { |t| t["name"] == "set_suggested_actions" }
+      if only_suggested_actions && text_parts.any?
+        tool_uses.each do |t|
+          next unless t["name"] == "set_suggested_actions"
+
+          actions = t["input"]["actions"] || t["input"][:actions] || []
+          llm_suggested_actions = actions.filter_map do |a|
+            label = a["label"] || a[:label]
+            payload = a["payload"] || a[:payload]
+            next if label.blank? || payload.blank?
+
+            { label: label.to_s, action_type: "message", payload: payload.to_s }
+          end
+          break
+        end
+        return {
+          text: text_parts.join("\n"),
+          therapist_results: last_therapist_results,
+          appointment_results: last_appointment_results,
+          suggested_actions: llm_suggested_actions
         }
       end
 
@@ -345,6 +381,23 @@ class AgentService
         therapists = result[:therapists] || result["therapists"]
         if tool_call["name"] == "search_therapists" && result.is_a?(Hash) && therapists.present?
           last_therapist_results = therapists
+        end
+        # Capture appointment list for cancel flow — frontend renders as selectable cards
+        appointments = result[:appointments] || result["appointments"]
+        if tool_call["name"] == "list_appointments" && result.is_a?(Hash) && appointments.present?
+          last_appointment_results = appointments
+        end
+        # Capture suggested actions from set_suggested_actions tool
+        if tool_call["name"] == "set_suggested_actions"
+          input = tool_call["input"] || {}
+          actions = input["actions"] || input[:actions] || []
+          llm_suggested_actions = actions.filter_map do |a|
+            label = a["label"] || a[:label]
+            payload = a["payload"] || a[:payload]
+            next if label.blank? || payload.blank?
+
+            { label: label.to_s, action_type: "message", payload: payload.to_s }
+          end
         end
         {
           type: "tool_result",
@@ -369,6 +422,11 @@ class AgentService
 
     # Exhausted all rounds
     text = text_parts.any? ? text_parts.join("\n") : "I'm sorry, I wasn't able to complete that action. Please try again."
-    { text: text, therapist_results: last_therapist_results }
+    {
+      text: text,
+      therapist_results: last_therapist_results,
+      appointment_results: last_appointment_results,
+      suggested_actions: llm_suggested_actions
+    }
   end
 end

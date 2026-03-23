@@ -184,7 +184,7 @@ RSpec.describe "Onboarding Journey", type: :request do
       client = create(:client, user: user, therapist: therapist)
 
       # Book a slot via SchedulingService (marks it as taken)
-      slot_id = "slot-#{therapist.id}-1"
+      slot_id = SchedulingService.get_availability(therapist_id: therapist.id).first[:id]
       SchedulingService.book_appointment(
         client_id: client.id,
         therapist_id: therapist.id,

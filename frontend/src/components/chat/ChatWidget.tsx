@@ -15,11 +15,33 @@ interface ChatWidgetProps {
   initialConversationId?: string
 }
 
-const DEFAULT_ACTIONS: SuggestedAction[] = [
-  { label: 'Help me get started', action_type: 'message', payload: "I'm new and want to get started" },
-  { label: 'Schedule an appointment', action_type: 'message', payload: "I'd like to schedule an appointment" },
-  { label: "I'm feeling overwhelmed", action_type: 'message', payload: "I'm feeling overwhelmed right now" },
-]
+// Flow-graph aligned initial actions when chat is empty (per docs/chat-flow-graph.md)
+const FLOW_GRAPH_ACTIONS: Record<AgentContextType, SuggestedAction[]> = {
+  general: [
+    { label: 'Help me get started', action_type: 'message', payload: "I'm new and want to get started" },
+    { label: 'Schedule an appointment', action_type: 'message', payload: "I'd like to schedule an appointment" },
+  ],
+  onboarding: [
+    { label: 'Start onboarding', action_type: 'message', payload: "I'd like to start the onboarding process" },
+    { label: 'Upload a document', action_type: 'message', payload: "I want to upload my insurance card" },
+    { label: 'What do I need?', action_type: 'message', payload: 'What information do I need to provide?' },
+  ],
+  scheduling: [
+    { label: 'Find available times', action_type: 'message', payload: "What times are available this week?" },
+    { label: 'Reschedule my appointment', action_type: 'message', payload: "I need to reschedule my appointment" },
+    { label: 'Cancel appointment', action_type: 'message', payload: "I need to cancel my appointment" },
+  ],
+  emotional_support: [
+    { label: 'Talk to someone now', action_type: 'message', payload: "I need to talk to someone right now" },
+    { label: 'Breathing exercise', action_type: 'message', payload: "Can you guide me through a breathing exercise?" },
+    { label: 'Schedule a session', action_type: 'message', payload: "I'd like to schedule a session with my therapist" },
+  ],
+  document_upload: [
+    { label: 'Upload insurance card', action_type: 'message', payload: "I want to upload my insurance card" },
+    { label: 'Upload ID', action_type: 'message', payload: "I want to upload my ID" },
+    { label: 'What documents do I need?', action_type: 'message', payload: 'What documents do I need to provide?' },
+  ],
+}
 
 export default function ChatWidget({ contextType = 'general', pageContext, initialConversationId }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(!!initialConversationId)
@@ -33,11 +55,16 @@ export default function ChatWidget({ contextType = 'general', pageContext, initi
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
-  const activeActions = messages.length === 0 ? DEFAULT_ACTIONS : suggestedActions
+  const activeActions =
+    messages.length === 0 ? FLOW_GRAPH_ACTIONS[contextType] : suggestedActions
   const showDocUpload = onboardingState?.step === 'documents' && !onboardingState.docs_verified
 
   const handleSelectTherapist = (displayLabel: string) => {
     sendMessage(`I'd like to go with ${displayLabel}`)
+  }
+
+  const handleSelectAppointment = (cancelPayload: string) => {
+    sendMessage(cancelPayload)
   }
 
   return (
@@ -97,6 +124,7 @@ export default function ChatWidget({ contextType = 'general', pageContext, initi
               <div className="text-center text-sm text-slate-400 py-8">
                 <p className="font-medium text-slate-600 mb-1">Welcome to Appointment Assistant</p>
                 <p>I can help with onboarding, scheduling, or just being here for you.</p>
+                <p className="mt-2 text-slate-500 text-xs">If you're in crisis, please call 988 (Suicide & Crisis Lifeline).</p>
               </div>
             )}
 
@@ -105,6 +133,7 @@ export default function ChatWidget({ contextType = 'general', pageContext, initi
                 key={i}
                 message={msg}
                 onSelectTherapist={handleSelectTherapist}
+                onSelectAppointment={handleSelectAppointment}
               />
             ))}
 

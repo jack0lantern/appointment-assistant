@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { ClientProfile, DraftPlanSummary } from '@/types'
+import type { ClientProfile, DraftPlanSummary, TherapistAppointment } from '@/types'
 import api from '@/api/client'
 import ClientCard from '@/components/therapist/ClientCard'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,16 @@ export default function Dashboard() {
       return data
     },
   })
+
+  const { data: appointmentsData } = useQuery<{ appointments: TherapistAppointment[] }>({
+    queryKey: ['therapistAppointments'],
+    queryFn: async () => {
+      const { data } = await api.get<{ appointments: TherapistAppointment[] }>('/api/therapist/appointments')
+      return data
+    },
+  })
+
+  const upcomingAppointments = appointmentsData?.appointments ?? []
 
   const addClientMutation = useMutation({
     mutationFn: async (name: string) => {
@@ -81,6 +91,38 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {upcomingAppointments.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-lg font-semibold text-slate-900">Upcoming Appointments</h2>
+          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+            {upcomingAppointments.map((apt) => (
+              <button
+                key={apt.session_id}
+                className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-slate-50"
+                onClick={() => navigate(`/therapist/clients/${apt.client_id}`)}
+              >
+                <div className="text-left">
+                  <span className="font-medium text-slate-900">{apt.client_name}</span>
+                  <p className="text-sm text-slate-500">
+                    {new Date(apt.session_date).toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}{' '}
+                    at {new Date(apt.session_date).toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}{' '}
+                    · {apt.duration_minutes} min
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {(hasDraftPlans || allSubmitted) && (
         <div>
           <h2 className="mb-3 text-lg font-semibold text-slate-900">Pending Plans</h2>

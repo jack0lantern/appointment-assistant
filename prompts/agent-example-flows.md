@@ -77,7 +77,7 @@ AGENT: I'd be happy to help you schedule! Let me check what times are
 ```
 USER: Tuesday at 9 works for me
   → Intent: scheduling
-  → LLM proposes booking slot-1-5 (Tuesday 9:00 AM)
+  → LLM proposes booking slot (Tuesday 9:00 AM) using slot_id from get_available_slots
 
 AGENT: I've booked your appointment for Tuesday, March 25th at 9:00 AM.
        Your session will be 50 minutes. You'll receive a confirmation
@@ -85,7 +85,7 @@ AGENT: I've booked your appointment for Tuesday, March 25th at 9:00 AM.
 
        Is there anything else I can help with?
   → Backend calls: POST /api/agent/scheduling/book
-    body: { therapist_id: 1, slot_id: "slot-1-5" }
+    body: { therapist_id: 1, slot_id: "1:2026-03-25T15:00:00Z" }
     client_id: from JWT auth (NOT from LLM)
   → Response: { session_id: 101, status: "confirmed" }
 ```
@@ -115,12 +115,12 @@ AGENT: I can help you schedule for your client. Let me pull up available
 
 ```
 USER: Book them for Monday at 1pm
-  → LLM proposes booking slot-1-2 (Monday 1:00 PM) for client 10
+  → LLM proposes booking slot (Monday 1:00 PM) using slot_id from get_available_slots for client 10
 
 AGENT: Done — I've booked your client for Monday, March 24th at 1:00 PM
        (50-minute session). The appointment is confirmed.
   → Backend calls: POST /api/agent/scheduling/book
-    body: { therapist_id: 1, slot_id: "slot-1-2", client_id: 10 }
+    body: { therapist_id: 1, slot_id: "1:2026-03-24T19:00:00Z", client_id: 10 }
     acting_therapist_id: 1 (from JWT auth)
   → Service validates: Client 10 belongs to Therapist 1 ✓
   → Response: { session_id: 102, status: "confirmed" }
@@ -143,7 +143,7 @@ AGENT: I'm sorry, I wasn't able to book that appointment. It looks like
 
        Would you like to schedule for one of your own clients instead?
   → Backend calls: POST /api/agent/scheduling/book
-    body: { therapist_id: 2, slot_id: "slot-2-3", client_id: 50 }
+    body: { therapist_id: 2, slot_id: "2:2026-03-25T19:00:00Z", client_id: 50 }
     acting_therapist_id: 2 (from JWT auth)
   → Service rejects: "Therapist 2 is not authorized to book for client 50"
   → 400 error surfaced as friendly message

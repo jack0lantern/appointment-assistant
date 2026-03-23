@@ -5,6 +5,9 @@
 #
 # Returns { context_type:, onboarding_progress: }
 class OnboardingRouter
+  # Demo user always routed as new patient for showcasing intake flow
+  DEMO_NEW_PATIENT_EMAIL = "jordan.kim@demo.health"
+
   # Route a user through the onboarding funnel.
   #
   # @param user [User] the authenticated user
@@ -14,7 +17,12 @@ class OnboardingRouter
     progress = conversation.onboarding
     client = user.client_profile
 
-    if client.nil?
+    if user.email == DEMO_NEW_PATIENT_EMAIL
+      # Hardcoded: Jordan always treated as new patient for demo
+      progress.is_new_user = true
+      progress.has_completed_intake = false
+      context_type = "onboarding"
+    elsif client.nil?
       # Brand-new user with no Client record
       progress.is_new_user = true
       progress.has_completed_intake = false

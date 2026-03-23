@@ -153,7 +153,6 @@ _SUGGESTED_ACTIONS: dict[AgentContextType, list[SuggestedAction]] = {
     AgentContextType.general: [
         SuggestedAction(label="Help me get started", payload="I'm new and want to get started"),
         SuggestedAction(label="Schedule an appointment", payload="I'd like to schedule an appointment"),
-        SuggestedAction(label="I'm feeling overwhelmed", payload="I'm feeling overwhelmed right now"),
     ],
     AgentContextType.onboarding: [
         SuggestedAction(label="Start onboarding", payload="I'd like to start the onboarding process"),

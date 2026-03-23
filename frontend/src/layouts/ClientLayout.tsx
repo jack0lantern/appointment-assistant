@@ -11,7 +11,11 @@ export default function ClientLayout() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/login', { replace: true })
+      navigate('/login/client', { replace: true })
+      return
+    }
+    if (user.role !== 'client') {
+      navigate('/therapist/dashboard', { replace: true })
     }
   }, [user, navigate])
 
@@ -19,7 +23,7 @@ export default function ClientLayout() {
 
   const handleLogout = () => {
     logout()
-    navigate('/login')
+    navigate('/login/client')
   }
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>

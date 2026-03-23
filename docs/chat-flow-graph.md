@@ -155,6 +155,7 @@ This document maps the chat agent's processing pipeline as a directed graph. It 
 | `get_current_datetime` | Utility | No | None |
 | `get_available_slots` | Scheduling | No | None (read-only) |
 | `book_appointment` | Scheduling | **Yes** | Creates Session record |
+| `list_appointments` | Scheduling | **Yes** | None (read-only; returns cancellable sessions) |
 | `cancel_appointment` | Scheduling | **Yes** | Updates Session status |
 | `get_grounding_exercise` | Emotional support | No | None |
 | `get_psychoeducation` | Emotional support | No | None |
@@ -187,7 +188,7 @@ This document maps the chat agent's processing pipeline as a directed graph. It 
   - When redirected from scheduling to onboarding, an extra action "I'm ready to schedule" is appended.
   - `emotional_support`: "Talk to someone", "Breathing exercise", "Schedule session"
   - `document_upload`: "Upload insurance", "Upload ID", "What docs needed?"
-  - `general`: "Get started", "Schedule", "I'm feeling overwhelmed"
+  - `general`: "Get started", "Schedule"
 - **File:** `backend/app/services/agent_service.py`
 
 ---

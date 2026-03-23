@@ -7,5 +7,10 @@ FactoryBot.define do
     duration_minutes { 50 }
     status { "completed" }
     session_type { "uploaded" }
+
+    trait :scheduled do
+      status { "scheduled" }
+      session_type { "live" }
+    end
   end
 end

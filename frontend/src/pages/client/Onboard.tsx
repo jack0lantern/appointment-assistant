@@ -22,9 +22,9 @@ export default function Onboard() {
 
     const token = localStorage.getItem('token')
     if (!token) {
-      // Preserve slug through auth — redirect to login with return URL
+      // Preserve slug through auth — redirect to client login (onboarding is for clients)
       localStorage.setItem('onboard_slug', slug)
-      navigate('/login', { replace: true })
+      navigate('/login/client', { replace: true })
       return
     }
 
@@ -39,7 +39,7 @@ export default function Onboard() {
           setError('This onboarding link is invalid or has expired.')
         } else if (err.response?.status === 401) {
           localStorage.setItem('onboard_slug', slug)
-          navigate('/login', { replace: true })
+          navigate('/login/client', { replace: true })
         } else {
           setError('Something went wrong. Please try again.')
         }
@@ -65,7 +65,7 @@ export default function Onboard() {
           <p className="text-red-600 font-medium mb-2">Oops</p>
           <p className="text-sm text-slate-600">{error}</p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/login/client')}
             className="mt-4 rounded-lg bg-teal-600 px-4 py-2 text-sm text-white hover:bg-teal-700"
           >
             Go to Login

@@ -14,29 +14,32 @@ class SchedulingService
     @booked_slots = Set.new
   end
 
+  # Slot times 9am, 1pm, 3pm in display timezone (matches get_current_datetime / America/Denver)
+  DISPLAY_TIMEZONE = "America/Denver"
+
   def self.generate_demo_slots(therapist_id:, start_date: nil, days_ahead: 7)
-    start_date ||= Time.now.utc.beginning_of_day
+    start_date ||= Time.current.utc
+    zone = ActiveSupport::TimeZone[DISPLAY_TIMEZONE]
 
     slots = []
-    slot_id = 1
 
     (1..days_ahead).each do |day_offset|
-      day = start_date + day_offset.days
-      next if day.saturday? || day.sunday?
+      day_in_zone = (start_date + day_offset.days).in_time_zone(zone).to_date
+      next if day_in_zone.saturday? || day_in_zone.sunday?
 
       [9, 13, 15].each do |hour|
-        slot_start = day.change(hour: hour, min: 0)
+        slot_local = zone.local(day_in_zone.year, day_in_zone.month, day_in_zone.day, hour, 0)
+        slot_start = slot_local.utc
         slot_end = slot_start + 50.minutes
 
         slots << {
-          id: "slot-#{therapist_id}-#{slot_id}",
+          id: "#{therapist_id}:#{slot_start.iso8601}",
           therapist_id: therapist_id,
           start_time: slot_start.iso8601,
           end_time: slot_end.iso8601,
           duration_minutes: 50,
           available: true
         }
-        slot_id += 1
       end
     end
 
@@ -67,6 +70,7 @@ class SchedulingService
     raise ConflictError, "Slot already booked" if @booked_slots.include?(slot_id)
 
     session_date ||= 1.day.from_now
+
     existing_count = Session.where(client_id: client_id, therapist_id: therapist_id).count
 
     new_session = Session.create!(

@@ -46,7 +46,7 @@ RSpec.describe "Agent Scheduling", type: :request do
   describe "POST /api/agent/scheduling/book" do
     it "requires authentication" do
       post "/api/agent/scheduling/book",
-           params: { therapist_id: 1, slot_id: "slot-1-1" },
+           params: { therapist_id: 1, slot_id: "1:2026-03-24T19:00:00Z" },
            as: :json
 
       expect(response).to have_http_status(:unauthorized)
@@ -57,10 +57,11 @@ RSpec.describe "Agent Scheduling", type: :request do
       let(:user) { create(:user, :client) }
       let!(:client) { create(:client, user: user, therapist: therapist) }
       let(:headers) { auth_headers_for(user) }
+      let(:slot_id) { SchedulingService.get_availability(therapist_id: therapist.id).first[:id] }
 
       it "books an appointment" do
         post "/api/agent/scheduling/book",
-             params: { therapist_id: therapist.id, slot_id: "slot-#{therapist.id}-1" },
+             params: { therapist_id: therapist.id, slot_id: slot_id },
              headers: headers,
              as: :json
 
@@ -85,12 +86,13 @@ RSpec.describe "Agent Scheduling", type: :request do
       let(:user) { therapist.user }
       let!(:client) { create(:client, therapist: therapist) }
       let(:headers) { auth_headers_for(user) }
+      let(:slot_id) { SchedulingService.get_availability(therapist_id: therapist.id).first[:id] }
 
       it "books on behalf of a client" do
         post "/api/agent/scheduling/book",
              params: {
                therapist_id: therapist.id,
-               slot_id: "slot-#{therapist.id}-1",
+               slot_id: slot_id,
                client_id: client.id
              },
              headers: headers,
@@ -103,7 +105,7 @@ RSpec.describe "Agent Scheduling", type: :request do
 
       it "requires client_id for therapist delegation" do
         post "/api/agent/scheduling/book",
-             params: { therapist_id: therapist.id, slot_id: "slot-#{therapist.id}-1" },
+             params: { therapist_id: therapist.id, slot_id: slot_id },
              headers: headers,
              as: :json
 

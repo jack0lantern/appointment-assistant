@@ -11,7 +11,11 @@ export default function TherapistLayout() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/login', { replace: true })
+      navigate('/login/therapist', { replace: true })
+      return
+    }
+    if (user.role !== 'therapist' && user.role !== 'admin') {
+      navigate('/client/dashboard', { replace: true })
     }
   }, [user, navigate])
 
@@ -19,7 +23,7 @@ export default function TherapistLayout() {
 
   const handleLogout = () => {
     logout()
-    navigate('/login')
+    navigate('/login/therapist')
   }
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>

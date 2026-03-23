@@ -1,5 +1,5 @@
 // Auth
-export interface User { id: number; email: string; name: string; role: 'therapist' | 'client' }
+export interface User { id: number; email: string; name: string; role: 'therapist' | 'client' | 'admin' }
 export interface LoginResponse { token: string; user: User }
 
 // Client (the patient entity, not HTTP client)
@@ -7,6 +7,23 @@ export interface ClientProfile { id: number; name: string; therapist_id: number;
 
 // Draft plan summary for therapist dashboard
 export interface DraftPlanSummary { plan_id: number; client_id: number; client_name: string; created_at: string }
+
+// Upcoming appointment for client dashboard
+export interface ClientAppointment {
+  session_id: number
+  session_date: string
+  therapist_name: string
+  duration_minutes: number
+}
+
+// Upcoming appointment for therapist dashboard
+export interface TherapistAppointment {
+  session_id: number
+  session_date: string
+  client_id: number
+  client_name: string
+  duration_minutes: number
+}
 
 // Session
 export interface Session { id: number; client_id: number; therapist_id: number; session_date: string; session_number: number; duration_minutes: number; status: string; session_type?: 'uploaded' | 'live'; recording_status?: string | null; summary?: SessionSummary }

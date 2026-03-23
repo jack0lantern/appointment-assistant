@@ -30,8 +30,9 @@ class TherapistSearchService
     end
 
     @label_map = {}
+    seen_names = Hash.new(0)
     results.each_with_index.map do |therapist, index|
-      label = generate_label(therapist, index)
+      label = generate_label(therapist, index, seen_names)
       @label_map[label] = therapist.id
 
       TherapistSearchResult.new(
@@ -63,9 +64,15 @@ class TherapistSearchService
 
   private
 
-  def generate_label(therapist, index)
-    letter = ("A".."Z").to_a[index % 26]
-    "Dr. #{letter}"
+  def generate_label(therapist, index, seen_names)
+    name = therapist.user.name
+    seen_names[name] += 1
+    if seen_names[name] > 1
+      # Disambiguate duplicate names with license type
+      "#{name} (#{therapist.license_type})"
+    else
+      name
+    end
   end
 
   def sanitize_like(str)

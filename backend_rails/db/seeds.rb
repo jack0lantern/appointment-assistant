@@ -6,7 +6,8 @@
 #   therapist@demo.health / demo123
 #   therapist2@demo.health / demo123
 #   client@demo.health / demo123
-#   jordan.kim@demo.health, maya.patel@demo.health, etc. / demo123
+#   jordan.kim@demo.health / demo123  (Jordan — always routes as new patient for demo)
+#   maya.patel@demo.health, chris.wong@demo.health, etc. / demo123
 
 unless User.exists?(email: "therapist@demo.health")
   therapist = User.create!(
@@ -27,7 +28,8 @@ unless User.exists?(email: "therapist@demo.health")
     user_id: therapist.id,
     license_type: "LCSW",
     specialties: ["anxiety", "depression", "CBT"],
-    preferences: {}
+    preferences: {},
+    slug: "dr-sarah-chen"
   )
 
   Client.create!(
@@ -50,10 +52,11 @@ therapist_profile2 = Therapist.find_or_create_by!(user_id: therapist2.id) do |t|
   t.license_type = "LMFT"
   t.specialties = ["trauma", "family therapy", "EMDR"]
   t.preferences = {}
+  t.slug = "dr-michael-torres"
 end
 
 # Five additional clients
-%w[Jordan Kim Maya Patel Chris Wong Taylor Nguyen Sam Foster].each_with_index do |name, i|
+["Jordan Kim", "Maya Patel", "Chris Wong", "Taylor Nguyen", "Sam Foster"].each_with_index do |name, i|
   email = "#{name.downcase.tr(" ", ".")}@demo.health"
   cu = User.find_or_create_by!(email: email) do |u|
     u.name = name

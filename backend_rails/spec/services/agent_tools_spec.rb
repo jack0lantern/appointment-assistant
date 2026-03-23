@@ -2,8 +2,8 @@ require "rails_helper"
 
 RSpec.describe AgentTools do
   describe "TOOL_DEFINITIONS" do
-    it "has 12 tool definitions" do
-      expect(AgentTools::TOOL_DEFINITIONS.length).to eq(12)
+    it "has 14 tool definitions" do
+      expect(AgentTools::TOOL_DEFINITIONS.length).to eq(14)
     end
 
     it "each tool has name, description, and input_schema" do
@@ -19,9 +19,9 @@ RSpec.describe AgentTools do
     it "includes all expected tool names" do
       names = AgentTools::TOOL_DEFINITIONS.map { |t| t[:name] }
       %w[
-        get_current_datetime get_available_slots book_appointment cancel_appointment
+        get_current_datetime get_available_slots book_appointment list_appointments cancel_appointment
         get_grounding_exercise get_psychoeducation get_what_to_expect get_validation_message
-        search_therapists confirm_therapist check_document_status upload_document
+        search_therapists confirm_therapist check_document_status upload_document set_suggested_actions
       ].each do |expected|
         expect(names).to include(expected)
       end
@@ -187,6 +187,22 @@ RSpec.describe AgentTools do
       end
     end
 
+    describe "set_suggested_actions" do
+      it "returns success (AgentService captures input for buttons)" do
+        result = described_class.execute_tool(
+          name: "set_suggested_actions",
+          input: {
+            "actions" => [
+              { "label" => "Anxiety", "payload" => "I'm dealing with anxiety" },
+              { "label" => "Depression", "payload" => "I'm dealing with depression" }
+            ]
+          },
+          auth_context: client_auth
+        )
+        expect(result).to eq({ success: true })
+      end
+    end
+
     describe "unknown tool" do
       it "returns an error" do
         result = described_class.execute_tool(
@@ -204,16 +220,17 @@ RSpec.describe AgentTools do
           auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "client", client_id: nil)
           result = described_class.execute_tool(
             name: "book_appointment",
-            input: { "therapist_id" => 5, "slot_id" => "slot-5-1" },
+            input: { "therapist_id" => 5, "slot_id" => "5:2026-03-24T19:00:00Z" },
             auth_context: auth
           )
-          expect(result[:error]).to include("No client profile")
+          # Onboarding guard catches missing client_id before exec_book_appointment
+          expect(result[:error]).to eq("onboarding_incomplete")
         end
 
         it "returns error when therapist omits client_id" do
           result = described_class.execute_tool(
             name: "book_appointment",
-            input: { "therapist_id" => 5, "slot_id" => "slot-5-1" },
+            input: { "therapist_id" => 5, "slot_id" => "5:2026-03-24T19:00:00Z" },
             auth_context: therapist_auth
           )
           expect(result[:error]).to include("must specify client_id")
@@ -223,7 +240,97 @@ RSpec.describe AgentTools do
           auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "admin")
           result = described_class.execute_tool(
             name: "book_appointment",
-            input: { "therapist_id" => 5, "slot_id" => "slot-5-1" },
+            input: { "therapist_id" => 5, "slot_id" => "5:2026-03-24T19:00:00Z" },
+            auth_context: auth
+          )
+          expect(result[:error]).to include("Only clients and therapists")
+        end
+      end
+
+      describe "list_appointments" do
+        it "returns error when client has no client_id" do
+          auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "client", client_id: nil)
+          result = described_class.execute_tool(
+            name: "list_appointments",
+            input: {},
+            auth_context: auth
+          )
+          expect(result[:error]).to include("No client profile")
+        end
+
+        it "returns error when therapist omits client_id" do
+          result = described_class.execute_tool(
+            name: "list_appointments",
+            input: {},
+            auth_context: therapist_auth
+          )
+          expect(result[:error]).to include("must specify client_id")
+        end
+
+        it "returns error when therapist lists appointments for client not assigned to them" do
+          other_therapist = create(:therapist)
+          other_client = create(:client, therapist: other_therapist)
+          create(:session, therapist: other_therapist, client: other_client, status: "scheduled", session_date: 2.days.from_now)
+
+          auth = AgentTools::ToolAuthContext.new(user_id: therapist_auth.user_id, role: "therapist", therapist_id: therapist_auth.therapist_id)
+          result = described_class.execute_tool(
+            name: "list_appointments",
+            input: { "client_id" => other_client.id },
+            auth_context: auth
+          )
+
+          expect(result[:error]).to be_present
+          expect(result[:error]).to include("not assigned")
+        end
+
+        it "returns appointments when therapist lists for their assigned client" do
+          therapist = create(:therapist)
+          client = create(:client, therapist: therapist)
+          create(:session, therapist: therapist, client: client, status: "scheduled", session_date: 2.days.from_now)
+
+          auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "therapist", therapist_id: therapist.id)
+          result = described_class.execute_tool(
+            name: "list_appointments",
+            input: { "client_id" => client.id },
+            auth_context: auth
+          )
+
+          expect(result[:error]).to be_nil
+          expect(result[:appointments].length).to eq(1)
+        end
+
+        it "returns appointments for client with scheduled sessions" do
+          therapist = create(:therapist)
+          client = create(:client, therapist: therapist)
+          create(:session, therapist: therapist, client: client, status: "scheduled", session_date: 2.days.from_now)
+          auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "client", client_id: client.id, therapist_id: therapist.id)
+          result = described_class.execute_tool(
+            name: "list_appointments",
+            input: {},
+            auth_context: auth
+          )
+          expect(result[:appointments]).to be_a(Array)
+          expect(result[:appointments].length).to eq(1)
+          expect(result[:appointments].first).to include(:session_id, :date, :time, :therapist_name, :cancel_payload)
+        end
+
+        it "returns empty list when no scheduled sessions" do
+          client = create(:client)
+          auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "client", client_id: client.id)
+          result = described_class.execute_tool(
+            name: "list_appointments",
+            input: {},
+            auth_context: auth
+          )
+          expect(result[:appointments]).to eq([])
+          expect(result[:total]).to eq(0)
+        end
+
+        it "returns error for unauthorized role" do
+          auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "admin")
+          result = described_class.execute_tool(
+            name: "list_appointments",
+            input: {},
             auth_context: auth
           )
           expect(result[:error]).to include("Only clients and therapists")

@@ -2,7 +2,9 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import TherapistLayout from './layouts/TherapistLayout'
 import ClientLayout from './layouts/ClientLayout'
-import Login from './pages/Login'
+import LoginChoice from './pages/LoginChoice'
+import ClientLogin from './pages/ClientLogin'
+import TherapistLogin from './pages/TherapistLogin'
 
 // Therapist pages — lazy loaded so app boots even before agent files exist
 const TherapistDashboard = lazy(() => import('./pages/therapist/Dashboard'))
@@ -30,7 +32,9 @@ export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<LoginChoice />} />
+        <Route path="/login/client" element={<ClientLogin />} />
+        <Route path="/login/therapist" element={<TherapistLogin />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/onboard/:slug" element={<Onboard />} />
 
