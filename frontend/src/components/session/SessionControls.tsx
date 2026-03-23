@@ -1,9 +1,5 @@
 import { useCallback } from 'react'
-import {
-  useLocalParticipant,
-  useRoomContext,
-} from '@livekit/components-react'
-import { Track } from 'livekit-client'
+import { useLocalParticipant } from '@livekit/components-react'
 import { Button } from '@/components/ui/button'
 
 interface SessionControlsProps {

@@ -4,16 +4,6 @@ class SchedulingService
   class ValidationError < StandardError; end
   class ConflictError < StandardError; end
 
-  @booked_slots = Set.new
-
-  def self.booked_slots
-    @booked_slots
-  end
-
-  def self.clear_booked_slots!
-    @booked_slots = Set.new
-  end
-
   DISPLAY_TIMEZONE = "America/Denver"
   SLOT_DURATION_MINUTES = 60
   # Business hours: 9 AM – 4 PM local (last slot starts at 4 PM, ends at 5 PM)
@@ -54,7 +44,9 @@ class SchedulingService
 
     slots = generate_slots(therapist_id: therapist_id, start_date: start_date)
     return slots if include_booked
-    slots.reject { |s| @booked_slots.include?(s[:id]) }
+
+    booked_times = booked_times_for(therapist_id, slots)
+    slots.reject { |s| booked_times.include?(Time.parse(s[:start_time]).utc.to_i) }
   end
 
   def self.book_appointment(client_id:, therapist_id:, slot_id:, session_date: nil, acting_therapist_id: nil)
@@ -71,9 +63,18 @@ class SchedulingService
     therapist = Therapist.find_by(id: therapist_id)
     raise NotFoundError, "Therapist #{therapist_id} not found" unless therapist
 
-    raise ConflictError, "Slot already booked" if @booked_slots.include?(slot_id)
-
+    # Resolve session_date from slot_id (format: therapist_id:ISO8601) when not provided
+    if session_date.nil? && slot_id.is_a?(String) && slot_id.include?(":")
+      _prefix, datetime_str = slot_id.split(":", 2)
+      session_date = Time.parse(datetime_str) rescue nil
+    end
     session_date ||= 1.day.from_now
+
+    # Check DB for existing scheduled session at this time for this therapist
+    conflict = Session.where(therapist_id: therapist_id, status: "scheduled")
+      .where("session_date BETWEEN ? AND ?", session_date - 30.seconds, session_date + 30.seconds)
+      .exists?
+    raise ConflictError, "Slot already booked" if conflict
 
     existing_count = Session.where(client_id: client_id, therapist_id: therapist_id).count
 
@@ -87,7 +88,6 @@ class SchedulingService
       session_type: "live"
     )
 
-    @booked_slots.add(slot_id)
     Rails.logger.info("Appointment booked: session=#{new_session.id} client=#{client_id} therapist=#{therapist_id}")
 
     {
@@ -111,15 +111,24 @@ class SchedulingService
     raise ValidationError, "Cannot cancel a completed session" if session.status == "completed"
 
     session.update!(status: "cancelled")
-
-    # Re-open the slot so it appears available again
-    if session.session_date.present?
-      freed_slot_id = "#{session.therapist_id}:#{session.session_date.utc.iso8601}"
-      @booked_slots.delete(freed_slot_id)
-    end
-
     Rails.logger.info("Appointment cancelled: session=#{session_id} client=#{client_id}")
 
     { session_id: session_id, status: "cancelled" }
   end
+
+  # Query the DB for scheduled sessions that overlap with the given slots' time range
+  def self.booked_times_for(therapist_id, slots)
+    return Set.new if slots.empty?
+
+    start_times = slots.map { |s| Time.parse(s[:start_time]) }
+    range_start = start_times.min
+    range_end = start_times.max + SLOT_DURATION_MINUTES.minutes
+
+    Session.where(therapist_id: therapist_id, status: "scheduled")
+      .where("session_date >= ? AND session_date <= ?", range_start, range_end)
+      .pluck(:session_date)
+      .map { |t| t.utc.to_i }
+      .to_set
+  end
+  private_class_method :booked_times_for
 end

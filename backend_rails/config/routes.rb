@@ -13,6 +13,9 @@ Rails.application.routes.draw do
 
     get "therapist/appointments" => "therapist_appointments#index"
     get "my/appointments" => "client_appointments#index"
+    get "my/sessions" => "client_sessions#index"
+    get "my/homework" => "homework#index"
+    patch "homework/:id" => "homework#update"
 
     post "agent/chat" => "agent#chat"
     get "agent/scheduling/availability" => "agent_scheduling#availability"

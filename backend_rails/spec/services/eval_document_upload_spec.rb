@@ -214,7 +214,7 @@ RSpec.describe "Document upload evaluation", type: :service do
       )
 
       expect(result).not_to have_key(:error)
-      expect(result[:slots]).to be_an(Array)
+      expect(result[:days]).to be_an(Array)
     end
 
     it "onboarding progress reflects docs_verified after verification" do

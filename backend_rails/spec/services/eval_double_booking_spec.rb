@@ -32,7 +32,7 @@ RSpec.describe "Double-booking prevention evaluation", type: :service do
   before do
     user1.reload
     user2.reload
-    SchedulingService.clear_booked_slots!
+
   end
 
   # ---------------------------------------------------------------------------

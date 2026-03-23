@@ -26,7 +26,7 @@ RSpec.describe "Booking time accuracy evaluation", type: :service do
 
   before do
     user.reload
-    SchedulingService.clear_booked_slots!
+
   end
 
   # ---------------------------------------------------------------------------

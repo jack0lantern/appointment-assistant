@@ -35,7 +35,7 @@ RSpec.describe "Booked slot visibility evaluation", type: :service do
   before do
     user1.reload
     user2.reload
-    SchedulingService.clear_booked_slots!
+
   end
 
   # ---------------------------------------------------------------------------
@@ -116,8 +116,8 @@ RSpec.describe "Booked slot visibility evaluation", type: :service do
         auth_context: auth_for(user2, client2)
       )
 
-      slot_ids = result[:slots].map { |s| s[:slot_id] }
-      expect(slot_ids).not_to include(slot[:id])
+      all_slot_ids = result[:days].flat_map { |d| d[:slots].map { |s| s[:slot_id] } }
+      expect(all_slot_ids).not_to include(slot[:id])
     end
 
     it "formatted time list does not include the booked time on that date" do
@@ -137,8 +137,8 @@ RSpec.describe "Booked slot visibility evaluation", type: :service do
         auth_context: auth_for(user2, client2)
       )
 
-      same_day_slots = result[:slots].select { |s| s[:date] == booked_date_str }
-      times = same_day_slots.map { |s| s[:time] }
+      booked_day = result[:days].find { |d| d[:date] == booked_date_str }
+      times = booked_day[:slots].map { |s| s[:time] }
       expect(times).not_to include("01:00 PM")
       expect(times).to include("09:00 AM")
       expect(times).to include("03:00 PM")
@@ -223,8 +223,8 @@ RSpec.describe "Booked slot visibility evaluation", type: :service do
 
       booked_date = Time.parse(slot[:start_time]).in_time_zone(zone)
       booked_date_str = booked_date.strftime("%A, %B %d")
-      same_day = result[:slots].select { |s| s[:date] == booked_date_str }
-      times = same_day.map { |s| s[:time] }
+      booked_day = result[:days].find { |d| d[:date] == booked_date_str }
+      times = booked_day[:slots].map { |s| s[:time] }
 
       expect(times).not_to include("01:00 PM")
     end

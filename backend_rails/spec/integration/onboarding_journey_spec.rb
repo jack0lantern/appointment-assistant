@@ -175,7 +175,6 @@ RSpec.describe "Onboarding Journey", type: :request do
   end
 
   describe "phantom booking during scheduling" do
-    before(:each) { SchedulingService.clear_booked_slots! }
 
     it "handles phantom booking during scheduling" do
       # Create therapist + client
@@ -184,12 +183,13 @@ RSpec.describe "Onboarding Journey", type: :request do
       client = create(:client, user: user, therapist: therapist)
 
       # Book a slot via SchedulingService (marks it as taken)
-      slot_id = SchedulingService.get_availability(therapist_id: therapist.id).first[:id]
+      slot = SchedulingService.get_availability(therapist_id: therapist.id).first
+      slot_id = slot[:id]
       SchedulingService.book_appointment(
         client_id: client.id,
         therapist_id: therapist.id,
         slot_id: slot_id,
-        session_date: 1.day.from_now
+        session_date: Time.parse(slot[:start_time])
       )
 
       # Try to book the same slot via AgentTools

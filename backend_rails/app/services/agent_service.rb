@@ -169,6 +169,16 @@ class AgentService
         "Do NOT ask which therapist they want to see — proceed directly to showing available times."
     end
 
+    # Therapist scheduling: require patient name before proceeding
+    if effective_context == "scheduling" && auth.role == "therapist"
+      system_prompt += "\n\nIMPORTANT: You are assisting a therapist who wants to manage appointments " \
+        "on behalf of a client. Before calling any scheduling tools (get_available_slots, book_appointment, " \
+        "list_appointments, cancel_appointment), you MUST first ask which patient this is for. " \
+        "Call search_clients with the patient name to resolve the client_id. " \
+        "Use therapist_id #{auth.therapist_id} for get_available_slots and book_appointment. " \
+        "Pass the resolved client_id to book_appointment, list_appointments, and cancel_appointment."
+    end
+
     # 8. Call LLM with tool loop
     llm_response = {}
     begin

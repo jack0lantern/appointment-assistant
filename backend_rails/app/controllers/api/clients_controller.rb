@@ -30,7 +30,7 @@ module Api
         return
       end
 
-      sessions = client.sessions.order(session_date: :desc, id: :desc).limit(10)
+      sessions = client.sessions.where(status: "completed").order(session_date: :desc, id: :desc).limit(10)
       plan = client.treatment_plan
       session_ids = client.sessions.pluck(:id)
       version_ids = TreatmentPlanVersion.joins(:treatment_plan).where(treatment_plans: { client_id: client.id }).pluck(:id)

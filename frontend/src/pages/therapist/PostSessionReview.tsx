@@ -5,7 +5,6 @@ import api from '@/api/client'
 import type { TranscriptPreview, LiveSessionStatus } from '@/types'
 import GenerationProgress from '@/components/therapist/GenerationProgress'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 
 interface LocationState {
@@ -39,7 +38,7 @@ export default function PostSessionReview() {
   })
 
   // Fetch transcript preview once processing is complete
-  const { data: preview, isLoading: previewLoading, error: previewError } = useQuery<TranscriptPreview>({
+  const { data: preview } = useQuery<TranscriptPreview>({
     queryKey: ['transcript-preview', sessionId],
     queryFn: async () => {
       const { data } = await api.get(`/api/sessions/${sessionId}/transcript/preview`)

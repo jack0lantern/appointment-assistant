@@ -2,8 +2,8 @@ require "rails_helper"
 
 RSpec.describe AgentTools do
   describe "TOOL_DEFINITIONS" do
-    it "has 15 tool definitions" do
-      expect(AgentTools::TOOL_DEFINITIONS.length).to eq(15)
+    it "has 16 tool definitions" do
+      expect(AgentTools::TOOL_DEFINITIONS.length).to eq(16)
     end
 
     it "each tool has name, description, and input_schema" do
@@ -21,7 +21,7 @@ RSpec.describe AgentTools do
       %w[
         get_current_datetime get_available_slots book_appointment list_appointments cancel_appointment
         get_grounding_exercise get_psychoeducation get_what_to_expect get_validation_message
-        search_therapists confirm_therapist check_document_status upload_document set_suggested_actions
+        search_therapists confirm_therapist check_document_status upload_document search_clients set_suggested_actions
       ].each do |expected|
         expect(names).to include(expected)
       end
@@ -211,6 +211,68 @@ RSpec.describe AgentTools do
         )
         expect(result).to have_key(:error)
         expect(result[:error]).to include("Unknown tool")
+      end
+    end
+
+    describe "search_clients" do
+      it "returns matching clients for a therapist" do
+        therapist = create(:therapist)
+        client1 = create(:client, therapist: therapist, name: "Alice Johnson")
+        client2 = create(:client, therapist: therapist, name: "Bob Smith")
+        _other_client = create(:client, name: "Alice Other") # different therapist
+
+        auth = AgentTools::ToolAuthContext.new(user_id: therapist.user_id, role: "therapist", therapist_id: therapist.id)
+        result = described_class.execute_tool(
+          name: "search_clients",
+          input: { "query" => "Alice" },
+          auth_context: auth
+        )
+
+        expect(result[:clients]).to be_a(Array)
+        expect(result[:clients].length).to eq(1)
+        expect(result[:clients].first[:name]).to eq("Alice Johnson")
+        expect(result[:clients].first[:client_id]).to eq(client1.id)
+      end
+
+      it "returns all clients when query is blank" do
+        therapist = create(:therapist)
+        create(:client, therapist: therapist, name: "Alice Johnson")
+        create(:client, therapist: therapist, name: "Bob Smith")
+
+        auth = AgentTools::ToolAuthContext.new(user_id: therapist.user_id, role: "therapist", therapist_id: therapist.id)
+        result = described_class.execute_tool(
+          name: "search_clients",
+          input: {},
+          auth_context: auth
+        )
+
+        expect(result[:clients].length).to eq(2)
+      end
+
+      it "returns error when called by a client" do
+        auth = AgentTools::ToolAuthContext.new(user_id: 1, role: "client", client_id: 10)
+        result = described_class.execute_tool(
+          name: "search_clients",
+          input: { "query" => "Alice" },
+          auth_context: auth
+        )
+
+        expect(result[:error]).to include("Only therapists")
+      end
+
+      it "returns empty array when no clients match" do
+        therapist = create(:therapist)
+        create(:client, therapist: therapist, name: "Bob Smith")
+
+        auth = AgentTools::ToolAuthContext.new(user_id: therapist.user_id, role: "therapist", therapist_id: therapist.id)
+        result = described_class.execute_tool(
+          name: "search_clients",
+          input: { "query" => "Nonexistent" },
+          auth_context: auth
+        )
+
+        expect(result[:clients]).to eq([])
+        expect(result[:total]).to eq(0)
       end
     end
 

@@ -15,7 +15,6 @@ RSpec.describe "Phantom Booking (slot conflict handling)" do
     )
   end
 
-  before(:each) { SchedulingService.clear_booked_slots! }
 
   describe "SchedulingService conflict detection" do
     it "raises ConflictError when booking an already-booked slot" do
@@ -89,8 +88,8 @@ RSpec.describe "Phantom Booking (slot conflict handling)" do
 
       expect(result[:error]).to be_nil
       expect(result[:therapist_id]).to eq(therapist.id)
-      expect(result[:slots]).to be_an(Array)
-      expect(result[:slots]).not_to be_empty
+      expect(result[:days]).to be_an(Array)
+      expect(result[:days]).not_to be_empty
     end
 
     it "uses client's assigned therapist when therapist_id omitted in book_appointment" do

@@ -41,7 +41,7 @@ export default function App() {
         {/* Therapist routes */}
         <Route element={<TherapistLayout />}>
           <Route path="/therapist/dashboard" element={<TherapistDashboard />} />
-          <Route path="/therapist/clients" element={<TherapistDashboard />} />
+          <Route path="/therapist/clients" element={<Navigate to="/therapist/dashboard" replace />} />
           <Route path="/therapist/clients/:clientId" element={<ClientDetail />} />
           <Route path="/therapist/sessions/new" element={<NewSession />} />
           <Route path="/therapist/clients/:clientId/plan" element={<PlanReview />} />

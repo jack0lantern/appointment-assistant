@@ -78,7 +78,6 @@ RSpec.describe SchedulingService do
     let(:client) { create(:client, therapist: therapist) }
     let(:slot_id) { described_class.get_availability(therapist_id: therapist.id).first[:id] }
 
-    before(:each) { SchedulingService.clear_booked_slots! }
 
     it "creates a session record" do
       result = described_class.book_appointment(

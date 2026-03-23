@@ -230,6 +230,23 @@ class AgentTools
       }
     },
     {
+      name: "search_clients",
+      description:
+        "Search the therapist's assigned clients by name. Returns client names and IDs. " \
+        "Use this when a therapist wants to schedule, list, or cancel appointments on behalf of a client — " \
+        "call this first to resolve the patient name to a client_id. Only available to therapists.",
+      input_schema: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "Name or partial name to search for. Omit to list all assigned clients."
+          }
+        },
+        required: []
+      }
+    },
+    {
       name: "set_suggested_actions",
       description:
         "Set the quick-action buttons shown to the user. Call this when you present " \
@@ -316,6 +333,9 @@ class AgentTools
 
     when "upload_document"
       exec_upload_document(input, auth_context)
+
+    when "search_clients"
+      exec_search_clients(input, auth_context)
 
     when "set_suggested_actions"
       # Side-effect tool: AgentService captures the input; we just return success
@@ -406,19 +426,65 @@ class AgentTools
 
       slots = SchedulingService.get_availability(therapist_id: therapist_id)
       zone = ActiveSupport::TimeZone[SchedulingService::DISPLAY_TIMEZONE]
+      duration = SchedulingService::SLOT_DURATION_MINUTES
 
-      formatted = slots.map do |slot|
-        start_utc = Time.parse(slot[:start_time])
-        start_local = start_utc.in_time_zone(zone)
+      # Group slots by date, build time windows and individual slot list per day
+      by_date = slots.group_by do |slot|
+        Time.parse(slot[:start_time]).in_time_zone(zone).to_date
+      end
+
+      days = by_date.sort.map do |date, day_slots|
+        sorted = day_slots.sort_by { |s| Time.parse(s[:start_time]) }
+        hours = sorted.map { |s| Time.parse(s[:start_time]).in_time_zone(zone).hour }
+
+        windows = collapse_hours_to_windows(hours, zone, duration)
+
+        slot_list = sorted.map do |s|
+          start_local = Time.parse(s[:start_time]).in_time_zone(zone)
+          { slot_id: s[:id], time: start_local.strftime("%I:%M %p") }
+        end
+
         {
-          slot_id: slot[:id],
-          date: start_local.strftime("%A, %B %d"),
-          time: start_local.strftime("%I:%M %p"),
-          duration_minutes: slot[:duration_minutes]
+          date: sorted.first.then { |s| Time.parse(s[:start_time]).in_time_zone(zone).strftime("%A, %B %d") },
+          windows: windows,
+          slots: slot_list
         }
       end
 
-      { therapist_id: therapist_id, slots: formatted, total: formatted.length }
+      total_slots = days.sum { |d| d[:slots].length }
+      { therapist_id: therapist_id, days: days, total: total_slots }
+    end
+
+    # Collapse sorted hours [9,10,11,13,14,15,16] into window strings
+    # ["9:00 AM – 12:00 PM", "1:00 PM – 5:00 PM"]
+    def collapse_hours_to_windows(hours, zone, duration)
+      return [] if hours.empty?
+
+      ranges = []
+      range_start = hours.first
+
+      hours.each_cons(2) do |curr, nxt|
+        if nxt != curr + 1
+          ranges << [range_start, curr]
+          range_start = nxt
+        end
+      end
+      ranges << [range_start, hours.last]
+
+      ranges.map do |first_hour, last_hour|
+        start_str = format_hour(first_hour)
+        # Window ends when the last slot finishes (start + duration)
+        end_hour = last_hour + (duration / 60)
+        end_str = format_hour(end_hour)
+        "#{start_str} – #{end_str}"
+      end
+    end
+
+    def format_hour(hour)
+      period = hour >= 12 ? "PM" : "AM"
+      display = hour % 12
+      display = 12 if display == 0
+      "#{display}:00 #{period}"
     end
 
     def exec_book_appointment(input, auth_context)
@@ -683,6 +749,19 @@ class AgentTools
         found: true,
         redacted_preview: doc[:redacted_preview],
         status: doc[:status]
+      }
+    end
+
+    def exec_search_clients(input, auth_context)
+      return { error: "Only therapists can search clients" } unless auth_context.role == "therapist"
+
+      query = input["query"] || input[:query]
+      clients = Client.where(therapist_id: auth_context.therapist_id)
+      clients = clients.where("name ILIKE ?", "%#{query}%") if query.present?
+
+      {
+        clients: clients.map { |c| { client_id: c.id, name: c.name } },
+        total: clients.count
       }
     end
 

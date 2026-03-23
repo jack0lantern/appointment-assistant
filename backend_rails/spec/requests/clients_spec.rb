@@ -51,6 +51,20 @@ RSpec.describe "Clients API", type: :request do
         expect(response).to have_http_status(:not_found)
       end
 
+      it "returns only completed sessions, not scheduled appointments" do
+        client = create(:client, therapist: therapist, user: nil)
+        completed = create(:session, therapist: therapist, client: client, session_number: 1, status: "completed")
+        scheduled = create(:session, :scheduled, therapist: therapist, client: client, session_number: 2)
+
+        get "/api/clients/#{client.id}", headers: headers
+
+        expect(response).to have_http_status(:ok)
+        json = response.parsed_body
+        expect(json["sessions"].length).to eq(1)
+        expect(json["sessions"].first["id"]).to eq(completed.id)
+        expect(json["sessions"].map { |s| s["id"] }).not_to include(scheduled.id)
+      end
+
       it "returns null treatment_plan when client has no plan" do
         client = create(:client, therapist: therapist, user: nil)
 

@@ -79,7 +79,7 @@ RSpec.describe "Extended adversarial evaluation", type: :service do
       if result[:error]
         expect(result[:error]).to be_present
       else
-        expect(result[:slots]).to be_an(Array)
+        expect(result[:days]).to be_an(Array)
       end
     end
 

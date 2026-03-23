@@ -283,7 +283,7 @@ RSpec.describe "Agent onboarding evaluation", type: :service do
         result = AgentTools.execute_tool(name: "get_available_slots", input: { "therapist_id" => therapist.id }, auth_context: auth)
 
         expect(result).not_to have_key(:error)
-        expect(result[:slots]).to be_an(Array)
+        expect(result[:days]).to be_an(Array)
       end
     end
 
@@ -330,7 +330,7 @@ RSpec.describe "Agent onboarding evaluation", type: :service do
         result = AgentTools.execute_tool(name: "get_available_slots", input: { "therapist_id" => therapist.id }, auth_context: auth)
 
         expect(result).not_to have_key(:error)
-        expect(result[:slots]).to be_an(Array)
+        expect(result[:days]).to be_an(Array)
       end
 
       it "allows book_appointment for returning client" do
@@ -405,7 +405,7 @@ RSpec.describe "Agent onboarding evaluation", type: :service do
         result = AgentTools.execute_tool(name: "get_available_slots", input: { "therapist_id" => therapist_profile.id }, auth_context: auth)
 
         expect(result).not_to have_key(:error)
-        expect(result[:slots]).to be_an(Array)
+        expect(result[:days]).to be_an(Array)
       end
     end
   end
