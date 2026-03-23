@@ -24,8 +24,6 @@
 - `backend_rails/app/services/` — InputSafety, SchedulingService, TherapistSearchService, etc.
 - `backend_rails/app/blueprints/` — JSON serializers (contracts)
 - `frontend/src/` — React app, pages, components
-- `backend/` — Python reference implementation (legacy)
-
 ## Env & Config
 
 - `backend_rails/.env` — ANTHROPIC_API_KEY, DATABASE_URL, JWT_SECRET, CORS_ORIGINS

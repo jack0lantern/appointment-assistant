@@ -17,7 +17,7 @@ Architecture
                        │ POST /api/agent/chat
                        │ POST /api/agent/documents
 ┌──────────────────────▼──────────────────────────────────┐
-│  Backend (FastAPI)                                       │
+│  Backend (Rails)                                          │
 │                                                          │
 │  ┌─────────────────────────────────────────────┐        │
 │  │  Redaction Layer (redaction.py)              │        │
@@ -61,20 +61,20 @@ Redacted message + system prompt → Claude (tool-calling mode)
 If Claude calls a tool (e.g., search_availability), backend executes it with real data, returns masked result to Claude
 Claude generates response → safety check (safety_patterns.py) → post-process
 Response sent to frontend with any suggested actions
-New Files
+Key Files (Rails)
 Backend
-backend/app/utils/redaction.py — PII detection, masking, token mapping
-backend/app/services/agent_service.py — Core chat agent orchestration
-backend/app/services/ocr_service.py — Document text extraction
-backend/app/services/scheduling_service.py — Secure appointment operations
-backend/app/services/emotional_support.py — Supportive content snippets
-backend/app/routes/agent.py — /api/agent/* endpoints
-backend/app/schemas/agent.py — Chat request/response schemas
-backend/app/models/conversation.py — Conversation + message persistence
-backend/tests/test_redaction.py
-backend/tests/test_agent_service.py
-backend/tests/test_agent_routes.py
-backend/tests/test_scheduling_service.py
+backend_rails/app/services/redaction_service.rb — PII detection, masking, token mapping
+backend_rails/app/services/agent_service.rb — Core chat agent orchestration
+backend_rails/app/services/ocr_service.rb — Document text extraction
+backend_rails/app/services/scheduling_service.rb — Secure appointment operations
+backend_rails/app/services/emotional_support_service.rb — Supportive content snippets
+backend_rails/app/controllers/api/agent_controller.rb — /api/agent/* endpoints
+backend_rails/app/blueprints/agent_blueprint.rb — Chat request/response serialization
+backend_rails/app/models/conversation.rb — Conversation + message persistence
+backend_rails/spec/services/redaction_service_spec.rb
+backend_rails/spec/services/agent_service_spec.rb
+backend_rails/spec/requests/agent_chat_spec.rb
+backend_rails/spec/services/scheduling_service_spec.rb
 Frontend
 frontend/src/components/chat/ChatWidget.tsx — Floating button + expandable panel
 frontend/src/components/chat/ChatMessage.tsx — Message bubbles

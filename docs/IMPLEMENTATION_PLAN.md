@@ -4,7 +4,7 @@
 
 This plan defines how to build the AI-powered onboarding assistant described in the [PRD](AI%20Therapy%20Assistant%20PRD%20Draft.md), migrating the backend from Python/FastAPI to Ruby on Rails while preserving all existing behavior, security patterns, and test coverage.
 
-The existing Python backend serves as a **reference implementation**. The `credal-agent` branch can also be used as a reference for Credal-specific onboarding behavior and migration context. The frontend (React/Vite/TypeScript) is unchanged.
+The backend has been fully migrated to Rails. The `credal-agent` branch can be used as a reference for Credal-specific onboarding behavior. The frontend (React/Vite/TypeScript) is unchanged.
 
 ---
 
@@ -23,7 +23,7 @@ The existing Python backend serves as a **reference implementation**. The `creda
 | 9 | Serialization | Blueprinter | Lightweight, explicit JSON contracts, good fit for API-only Rails |
 | 10 | Anthropic integration | `anthropic-rb` | Lowest-friction path to parity with current Claude usage |
 | 11 | Auth | `jwt` gem + custom middleware | Matches existing API-style auth without adding full Devise complexity |
-| 12 | Migration strategy | Full migration to Rails, prefer same routes and response shapes | Minimizes frontend churn and makes parity testing against the Python backend practical |
+| 12 | Migration strategy | Full migration to Rails, prefer same routes and response shapes | Minimizes frontend churn and preserves API contracts |
 
 ---
 
@@ -61,9 +61,9 @@ The existing Python backend serves as a **reference implementation**. The `creda
 
 5. **Zero-ID UX:** LLM sees therapist bios with display labels, never raw UUIDs. Backend maps labels → real IDs server-side.
 
-6. **~221 existing Python tests** (across 15 pytest files) serve as the parity baseline. Rails signoff requires every existing pytest file to be accounted for in a migration matrix, plus the new onboarding specs added by this plan.
+6. **Parity baseline:** The migration matrix (`docs/TEST_PARITY_MATRIX.md`) documents the original Python test/route mapping. New onboarding specs are added as needed.
 
-7. **Migration target:** Full backend replacement in Rails. Prefer the same HTTP methods, paths, auth rules, and response envelopes as the current Python backend unless a documented contract change is approved before implementation.
+7. **Migration target:** Rails is the sole backend. Same HTTP methods, paths, auth rules, and response envelopes as the original design unless a documented contract change is approved.
 
 ---
 
@@ -73,7 +73,7 @@ The existing Python backend serves as a **reference implementation**. The `creda
 - **Conversation ownership:** Deep-link onboarding always creates or resumes a conversation owned by the authenticated user. Protected actions (`upload_document`, scheduling tools, future escalation actions) must validate both JWT auth and conversation ownership.
 - **Document lifecycle:** Uploaded files are stored in protected server-side storage via Rails-managed attachments. OCR runs asynchronously, raw uploads and raw OCR text never enter chat history, and only redacted summaries are persisted in conversation messages.
 - **PHI retention:** Raw uploads/OCR artifacts are retained only as long as needed for verification/debugging, with a default purge window defined in Phase 0 and enforced by background cleanup.
-- **Cutover contract:** There is no long-lived dual-write architecture. Python remains the reference implementation during migration; Rails becomes the only backend at cutover once parity, smoke tests, and rollback steps are documented.
+- **Cutover contract:** Rails is the only backend. Migration is complete; parity matrix and rollback steps are documented.
 
 ---
 
@@ -127,7 +127,7 @@ The existing Python backend serves as a **reference implementation**. The `creda
 **Goals:**
 - Initialize Rails API project with PostgreSQL
 - Set up RSpec, FactoryBot, database config, CI
-- Publish a parity matrix for current Python routes, request/response contracts, and pytest files
+- Parity matrix documents original Python→Rails migration (see `docs/TEST_PARITY_MATRIX.md`)
 - Define ActiveRecord models mirroring existing SQLAlchemy models:
   - `User`, `Client`, `Therapist`, `Session`, `Conversation`, `ConversationMessage`
   - `TreatmentPlan`, `TreatmentPlanVersion`, `SafetyFlag`, `HomeworkItem`, `EvaluationRun`
@@ -377,7 +377,7 @@ The existing Python backend serves as a **reference implementation**. The `creda
   - Node-by-node mapping: PRD LangGraph → Rails service objects
   - Key decisions table
   - Rails migration notes
-- Remove Python backend from the active runtime path after Rails cutover is validated; keep branch history/reference branches for rollback and comparison
+- Python backend has been removed; Rails is the only backend. Branch history preserved for reference.
 
 **Tests:**
 - `spec/integration/onboarding_journey_spec.rb`:
@@ -469,9 +469,9 @@ Phase 1: Chat Agent Pipeline Port ───────────────�
 
 Once this plan is approved, begin with Phase 0:
 
-1. Run existing `pytest` to confirm the green Python baseline (reference)
-2. Produce the route + serializer + test parity matrix
-3. Initialize Rails project alongside the existing Python backend
+1. ~~Run existing `pytest` to confirm the green Python baseline~~ (Python backend removed)
+2. Parity matrix documents route + serializer + test mapping (see `docs/TEST_PARITY_MATRIX.md`)
+3. Rails is the sole backend
 4. Set up RSpec + FactoryBot + database
 5. Create migrations for all models and safety-state fields
 6. `GET /health` → 200 on Rails

@@ -31,6 +31,6 @@ Per `.agents/skills/test-driven-development/SKILL.md`:
 
 ## Shared Contracts First
 
-- Pydantic schemas in `backend/app/schemas/` are binding contracts.
-- Define schemas before any agent builds.
+- Blueprinter serializers in `backend_rails/app/blueprints/` and JSON contracts define response shapes.
+- Define contracts before any agent builds.
 - All agents build to these contracts.

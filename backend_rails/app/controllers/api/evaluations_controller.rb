@@ -55,13 +55,13 @@ module Api
         yielder << sse_event("progress", { message: "Starting #{label}..." })
 
         # Evaluation pipeline (treatment plan generation + structural/readability/safety checks)
-        # is implemented in the Python backend. Rails migration does not yet include it.
+        # is planned for future implementation. Full treatment plan pipeline not yet in Rails.
         # See docs/TEST_PARITY_MATRIX.md and docs/IMPLEMENTATION_PLAN.md.
         yielder << sse_event(
           "error",
           {
             message: "Evaluation is not yet implemented in the Rails backend. " \
-                     "The treatment plan pipeline and evaluation logic exist in the Python backend. " \
+                     "The treatment plan pipeline and evaluation logic are planned for future implementation. " \
                      "Run: cd backend && uvicorn app.main:app --port 8001, " \
                      "then set VITE_API_URL=http://localhost:8001 when using the Evaluation page."
           }

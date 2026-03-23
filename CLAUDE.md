@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Appointment Assistant** is an AI-powered mental health onboarding and treatment assistant. It provides a conversational chat agent for intake, document upload, therapist search, and appointment scheduling, plus treatment plan generation with safety evaluation built-in.
 
-**Current Status:** Backend migrated to Ruby on Rails. Chat agent pipeline, onboarding flows, and scheduling tools are implemented. Python backend (`backend/`) remains as reference.
+**Current Status:** Backend is Ruby on Rails. Chat agent pipeline, onboarding flows, and scheduling tools are implemented.
 
 ---
 
@@ -77,10 +77,6 @@ backend_rails/           # Rails API (primary backend)
   db/
   spec/                  # RSpec tests
 
-backend/                 # Python reference (legacy)
-  app/
-  tests/
-
 frontend/                # React/Vite application
   src/
 
@@ -139,5 +135,4 @@ npm run dev   # Port 5173, expects backend on 8000
 ## References & Roles
 
 - **Rails backend:** `backend_rails/` — controllers, services, models
-- **Python reference:** `backend/` — behavioral parity baseline
 - **Frontend:** `frontend/src/` — React pages and components

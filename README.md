@@ -282,12 +282,6 @@ bundle exec rspec
 
 ---
 
-## Reference: Python Backend
-
-The `backend/` directory contains the original Python/FastAPI implementation, kept as a reference during the Rails migration. For local development and deployment, use `backend_rails/`.
-
----
-
 ## Limitations & Future Work
 
 - **No audio/video processing** — transcripts must be text; future: Whisper transcription integration

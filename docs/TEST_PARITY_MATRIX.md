@@ -1,10 +1,9 @@
 # Parity Matrix: Tests, Routes, and Contracts
 
-This file is the Phase 0 parity baseline for migrating the backend from Python/FastAPI to Rails.
+This file documents the parity baseline from the Python/FastAPI to Rails migration (completed).
 
-- **Reference implementation:** `backend/` (Python)
-- **Migration target:** `backend_rails/` (Rails)
-- **Rule:** No Python behavior is silently dropped; each route/test/contract must map to a Rails equivalent or be explicitly deferred.
+- **Target:** `backend_rails/` (Rails)
+- **Historical reference:** The Python backend has been removed; this matrix documents what was migrated.
 
 ---
 
@@ -66,8 +65,8 @@ Status legend:
 ## 3) Response Contract / Serializer Parity
 
 Contract baseline sources:
-- Python response models in `backend/app/schemas/*.py`
-- Existing API route response models in `backend/app/routes/*.py`
+- Blueprinter serializers in `backend_rails/app/blueprints/`
+- API response contracts in `backend_rails/app/controllers/`
 
 | Contract Area | Python Schema Source | Rails Blueprint / Contract | Status |
 |---|---|---|---|

@@ -5,7 +5,7 @@
 *Update this file as work progresses. Use it to track what the team is actively working on.*
 
 - **Last updated:** 2025-03-22
-- **Status:** Rails is the primary backend. Chat agent pipeline, onboarding, documents, scheduling, and escalation implemented. Python backend (`backend/`) remains as reference.
+- **Status:** Rails is the primary backend. Chat agent pipeline, onboarding, documents, scheduling, and escalation implemented.
 
 ## Active Work Areas
 
@@ -17,6 +17,5 @@
 - Demo accounts: therapist@demo.health / client@demo.health — password: demo123
 - Rails backend: `cd backend_rails && bundle exec rails s -p 8000`
 - Rails tests: `cd backend_rails && bundle exec rspec`
-- Python tests (reference): `cd backend && .venv/bin/python -m pytest tests/`
 - Frontend: `cd frontend && npm run dev` (port 5173, expects backend on 8000)
 - Docker: `docker-compose up -d` (Postgres 5433, MinIO 9002, LiveKit 7880)

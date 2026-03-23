@@ -89,13 +89,13 @@ This document maps the chat agent's processing pipeline as a directed graph. It 
 - **Output:** `SafetyMeta` (flagged, escalated, flag_type)
 - **Routing:** `ESCALATED` → `crisis_response` | `SAFE` → `classify_intent`
 - **Implementation:** Regex pattern matching against crisis language (suicidal ideation, self-harm, harm to others)
-- **File:** `backend/app/utils/safety_patterns.py`
+- **File:** `backend_rails/app/services/input_safety_service.rb`, `backend_rails/app/services/safety_scanner.rb`
 
 ### `crisis_response`
 - **Input:** Original message + safety metadata
 - **Output:** Hardcoded crisis response with resources (988 Lifeline, Crisis Text Line)
 - **Routing:** → `END` (LLM is never called)
-- **File:** `backend/app/services/agent_service.py`
+- **File:** `backend_rails/app/services/agent_service.rb`
 
 ### `classify_intent`
 - **Input:** User message text
@@ -113,7 +113,7 @@ This document maps the chat agent's processing pipeline as a directed graph. It 
 
 **Onboarding redirect:** If intent is `scheduling` and user is a client with no Client profile (`auth.client_id` is None), the effective context is overridden to `onboarding`. The LLM receives a system prompt addition instructing it to guide onboarding first; suggested actions include "I'm ready to schedule" so the user can return to booking after onboarding.
 
-- **File:** `backend/app/services/agent_service.py`
+- **File:** `backend_rails/app/services/agent_service.rb`
 
 ### `redact_pii`
 - **Input:** User message
@@ -121,7 +121,7 @@ This document maps the chat agent's processing pipeline as a directed graph. It 
 - **Routing:** Always → `build_context`
 - **Patterns:** Names, emails, phones, SSNs, dates of birth, policy/member IDs, addresses
 - **Invariant:** Mapping stored server-side only, never sent to LLM
-- **File:** `backend/app/utils/redaction.py`
+- **File:** `backend_rails/app/services/redaction_service.rb`
 
 ### `build_context`
 - **Input:** Context type, redacted message, conversation history
@@ -133,14 +133,14 @@ This document maps the chat agent's processing pipeline as a directed graph. It 
   - `emotional_support` — Validate feelings, use support tools
   - `document_upload` — Guide upload process
   - `general` — Supportive assistant
-- **File:** `backend/app/services/agent_service.py`
+- **File:** `backend_rails/app/services/agent_service.rb`
 
 ### `call_llm`
 - **Input:** System prompt, message history, tool definitions
 - **Output:** Text blocks + optional tool_use blocks
 - **Routing:** `HAS_TOOLS` → `execute_tools` | `NO_TOOLS` → `response_safety_check`
 - **Model:** Claude Haiku (haiku-4-5-20251001), max_tokens=1024
-- **File:** `backend/app/services/agent_service.py`
+- **File:** `backend_rails/app/services/agent_service.rb`
 
 ### `execute_tools`
 - **Input:** Tool call(s) from LLM response + auth context
@@ -166,7 +166,7 @@ This document maps the chat agent's processing pipeline as a directed graph. It 
 - **Client role:** `client_id` from JWT; can only act for self
 - **Therapist role:** `client_id` from tool input; server validates `Client.therapist_id == Therapist.id`
 
-- **Files:** `backend/app/services/agent_tools.py`, `backend/app/services/scheduling_service.py`, `backend/app/services/emotional_support.py`
+- **Files:** `backend_rails/app/services/agent_tools.rb`, `backend_rails/app/services/scheduling_service.rb`, `backend_rails/app/services/emotional_support_service.rb`
 
 ### `response_safety_check`
 - **Input:** LLM response text
@@ -176,7 +176,7 @@ This document maps the chat agent's processing pipeline as a directed graph. It 
   - Diagnosis ("you have depression", "consistent with...")
   - Medication advice (specific drug + dosage)
   - Medical advice ("stop taking your meds")
-- **File:** `backend/app/utils/safety_patterns.py`
+- **File:** `backend_rails/app/services/response_safety_service.rb`, `backend_rails/app/services/safety_scanner.rb`
 
 ### `append_actions`
 - **Input:** Response text, context type
@@ -189,7 +189,7 @@ This document maps the chat agent's processing pipeline as a directed graph. It 
   - `emotional_support`: "Talk to someone", "Breathing exercise", "Schedule session"
   - `document_upload`: "Upload insurance", "Upload ID", "What docs needed?"
   - `general`: "Get started", "Schedule"
-- **File:** `backend/app/services/agent_service.py`
+- **File:** `backend_rails/app/services/agent_service.rb`
 
 ---
 
