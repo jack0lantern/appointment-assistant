@@ -171,7 +171,11 @@ export default function ChatWidget({ contextType = 'general', pageContext, initi
           />
 
           {/* Input */}
-          <ChatInput onSend={sendMessage} disabled={isLoading} />
+          <ChatInput
+            onSend={sendMessage}
+            onUpload={uploadDocument}
+            disabled={isLoading}
+          />
         </div>
       )}
     </>

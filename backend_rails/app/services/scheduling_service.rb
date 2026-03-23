@@ -14,10 +14,12 @@ class SchedulingService
     @booked_slots = Set.new
   end
 
-  # Slot times 9am, 1pm, 3pm in display timezone (matches get_current_datetime / America/Denver)
   DISPLAY_TIMEZONE = "America/Denver"
+  SLOT_DURATION_MINUTES = 60
+  # Business hours: 9 AM – 4 PM local (last slot starts at 4 PM, ends at 5 PM)
+  SLOT_HOURS = (9..16).to_a.freeze
 
-  def self.generate_demo_slots(therapist_id:, start_date: nil, days_ahead: 7)
+  def self.generate_slots(therapist_id:, start_date: nil, days_ahead: 7)
     start_date ||= Time.current.utc
     zone = ActiveSupport::TimeZone[DISPLAY_TIMEZONE]
 
@@ -27,17 +29,17 @@ class SchedulingService
       day_in_zone = (start_date + day_offset.days).in_time_zone(zone).to_date
       next if day_in_zone.saturday? || day_in_zone.sunday?
 
-      [9, 13, 15].each do |hour|
+      SLOT_HOURS.each do |hour|
         slot_local = zone.local(day_in_zone.year, day_in_zone.month, day_in_zone.day, hour, 0)
         slot_start = slot_local.utc
-        slot_end = slot_start + 50.minutes
+        slot_end = slot_start + SLOT_DURATION_MINUTES.minutes
 
         slots << {
           id: "#{therapist_id}:#{slot_start.iso8601}",
           therapist_id: therapist_id,
           start_time: slot_start.iso8601,
           end_time: slot_end.iso8601,
-          duration_minutes: 50,
+          duration_minutes: SLOT_DURATION_MINUTES,
           available: true
         }
       end
@@ -46,11 +48,13 @@ class SchedulingService
     slots
   end
 
-  def self.get_availability(therapist_id:, start_date: nil)
+  def self.get_availability(therapist_id:, start_date: nil, include_booked: false)
     therapist = Therapist.find_by(id: therapist_id)
     raise NotFoundError, "Therapist #{therapist_id} not found" unless therapist
 
-    generate_demo_slots(therapist_id: therapist_id, start_date: start_date)
+    slots = generate_slots(therapist_id: therapist_id, start_date: start_date)
+    return slots if include_booked
+    slots.reject { |s| @booked_slots.include?(s[:id]) }
   end
 
   def self.book_appointment(client_id:, therapist_id:, slot_id:, session_date: nil, acting_therapist_id: nil)
@@ -78,7 +82,7 @@ class SchedulingService
       client_id: client_id,
       session_date: session_date,
       session_number: existing_count + 1,
-      duration_minutes: 50,
+      duration_minutes: SLOT_DURATION_MINUTES,
       status: "scheduled",
       session_type: "live"
     )
@@ -91,7 +95,7 @@ class SchedulingService
       status: "confirmed",
       slot_id: slot_id,
       session_date: session_date.iso8601,
-      duration_minutes: 50
+      duration_minutes: SLOT_DURATION_MINUTES
     }
   end
 
@@ -107,6 +111,13 @@ class SchedulingService
     raise ValidationError, "Cannot cancel a completed session" if session.status == "completed"
 
     session.update!(status: "cancelled")
+
+    # Re-open the slot so it appears available again
+    if session.session_date.present?
+      freed_slot_id = "#{session.therapist_id}:#{session.session_date.utc.iso8601}"
+      @booked_slots.delete(freed_slot_id)
+    end
+
     Rails.logger.info("Appointment cancelled: session=#{session_id} client=#{client_id}")
 
     { session_id: session_id, status: "cancelled" }

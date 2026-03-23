@@ -75,7 +75,7 @@ RSpec.describe "Returning client rebooking evaluation", type: :service do
       Session.create!(
         therapist: therapist, client: client_record,
         session_date: 2.days.from_now, session_number: 1,
-        duration_minutes: 50, status: "scheduled"
+        duration_minutes: 60, status: "scheduled"
       )
     end
 
@@ -178,7 +178,7 @@ RSpec.describe "Returning client rebooking evaluation", type: :service do
       Session.create!(
         therapist: therapist, client: client_record,
         session_date: 2.days.from_now, session_number: 1,
-        duration_minutes: 50, status: "scheduled"
+        duration_minutes: 60, status: "scheduled"
       )
     end
 
@@ -245,7 +245,7 @@ RSpec.describe "Returning client rebooking evaluation", type: :service do
       Session.create!(
         therapist: therapist, client: client_record,
         session_date: 2.days.from_now, session_number: 1,
-        duration_minutes: 50, status: "scheduled"
+        duration_minutes: 60, status: "scheduled"
       )
     end
 

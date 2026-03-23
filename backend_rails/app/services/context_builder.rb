@@ -240,6 +240,19 @@ class ContextBuilder
         "(specialties, availability, insurance) to find a good match."
     end
 
+    docs = progress.uploaded_documents || []
+    if docs.any?
+      list = docs.map do |d|
+        ref = d[:document_ref] || d["document_ref"]
+        preview = d[:redacted_preview] || d["redacted_preview"] || "(no preview)"
+        "  - document_ref: #{ref}, redacted_preview: #{preview}"
+      end.join("\n")
+      parts << "\n\nUPLOADED DOCUMENTS: The user has uploaded the following documents " \
+        "(identifiers redacted with tokens like [NAME_1]). When they indicate they've just uploaded " \
+        "a document, acknowledge it warmly and suggest next steps (e.g. upload another, search for a therapist). " \
+        "You may call upload_document with the document_ref to confirm:\n#{list}"
+    end
+
     parts.join
   end
 

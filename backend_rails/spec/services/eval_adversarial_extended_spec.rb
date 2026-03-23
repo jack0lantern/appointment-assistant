@@ -43,7 +43,7 @@ RSpec.describe "Extended adversarial evaluation", type: :service do
       Session.create!(
         therapist: therapist, client: other_client,
         session_date: 2.days.from_now, session_number: 1,
-        duration_minutes: 50, status: "scheduled"
+        duration_minutes: 60, status: "scheduled"
       )
 
       auth = AgentTools::ToolAuthContext.new(

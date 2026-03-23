@@ -1,14 +1,14 @@
 require "rails_helper"
 
 RSpec.describe SchedulingService do
-  describe ".generate_demo_slots" do
+  describe ".generate_slots" do
     it "generates slots" do
-      slots = described_class.generate_demo_slots(therapist_id: 1)
+      slots = described_class.generate_slots(therapist_id: 1)
       expect(slots).not_to be_empty
     end
 
     it "slots have required fields" do
-      slots = described_class.generate_demo_slots(therapist_id: 1)
+      slots = described_class.generate_slots(therapist_id: 1)
       slots.each do |slot|
         expect(slot).to have_key(:id)
         expect(slot).to have_key(:therapist_id)
@@ -22,7 +22,7 @@ RSpec.describe SchedulingService do
     it "skips weekends" do
       # 2026-03-20 is a Friday
       friday = Time.utc(2026, 3, 20)
-      slots = described_class.generate_demo_slots(therapist_id: 1, start_date: friday, days_ahead: 4)
+      slots = described_class.generate_slots(therapist_id: 1, start_date: friday, days_ahead: 4)
       slots.each do |slot|
         dt = Time.parse(slot[:start_time])
         expect(dt.wday).not_to eq(0) # Sunday
@@ -31,13 +31,13 @@ RSpec.describe SchedulingService do
     end
 
     it "has unique slot IDs" do
-      slots = described_class.generate_demo_slots(therapist_id: 1)
+      slots = described_class.generate_slots(therapist_id: 1)
       ids = slots.map { |s| s[:id] }
       expect(ids.uniq.size).to eq(ids.size)
     end
 
     it "uses time-based slot IDs (therapist_id:ISO8601)" do
-      slots = described_class.generate_demo_slots(therapist_id: 42)
+      slots = described_class.generate_slots(therapist_id: 42)
       slots.each do |slot|
         expect(slot[:id]).to match(/\A\d+:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
         expect(slot[:id]).to start_with("42:")
@@ -45,16 +45,16 @@ RSpec.describe SchedulingService do
     end
 
     it "includes correct therapist_id" do
-      slots = described_class.generate_demo_slots(therapist_id: 42)
+      slots = described_class.generate_slots(therapist_id: 42)
       slots.each do |slot|
         expect(slot[:therapist_id]).to eq(42)
       end
     end
 
-    it "duration is 50 minutes" do
-      slots = described_class.generate_demo_slots(therapist_id: 1)
+    it "duration is 60 minutes" do
+      slots = described_class.generate_slots(therapist_id: 1)
       slots.each do |slot|
-        expect(slot[:duration_minutes]).to eq(50)
+        expect(slot[:duration_minutes]).to eq(60)
       end
     end
   end

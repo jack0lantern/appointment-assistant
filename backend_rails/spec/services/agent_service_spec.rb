@@ -17,6 +17,20 @@ RSpec.describe AgentService do
     context "redaction before LLM" do
       let(:user) { create(:user, :client) }
 
+      it "restores PII tokens in agent response so user sees their actual email" do
+        # User provides email; LLM sees [EMAIL_1] and may echo it back in response
+        stub_llm_text_response("I've noted your email [EMAIL_1]. We'll send a confirmation there.")
+
+        result = service.process_message(
+          message: "My name is Jane and my email is jane@example.com",
+          user: user,
+          context_type: "general"
+        )
+
+        expect(result[:message]).to include("jane@example.com")
+        expect(result[:message]).not_to include("[EMAIL_1]")
+      end
+
       it "redacts PII from user message before sending to LLM" do
         stub_llm_text_response("Hello! How can I help?")
 

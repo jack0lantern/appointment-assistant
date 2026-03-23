@@ -199,7 +199,10 @@ class AgentService
     # 10. Append disclaimer (skip if LLM already included equivalent text)
     response_text += DISCLAIMER unless response_text.include?("does not provide medical advice")
 
-    # 11. Persist messages
+    # 11. Restore PII tokens in response so user sees their actual email/name instead of [EMAIL_1] etc
+    response_text = @redactor.restore(response_text)
+
+    # 12. Persist messages
     save_message(conversation: conversation, role: "user", content: redacted_message)
     save_message(conversation: conversation, role: "assistant", content: response_text)
 
@@ -210,7 +213,7 @@ class AgentService
     conversation.reload
     onboarding_progress = build_onboarding_state(conversation, effective_context)
 
-    # 12. Build suggested actions — fallback priority:
+    # 13. Build suggested actions — fallback priority:
     #   1. LLM-provided (via set_suggested_actions tool)
     #   2. Tool-aware (based on which tools actually executed this turn)
     #   3. Flow-graph step-appropriate defaults (static per context/step)

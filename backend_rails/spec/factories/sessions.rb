@@ -4,7 +4,7 @@ FactoryBot.define do
     association :client
     session_date { 1.day.from_now }
     session_number { 1 }
-    duration_minutes { 50 }
+    duration_minutes { 60 }
     status { "completed" }
     session_type { "uploaded" }
 

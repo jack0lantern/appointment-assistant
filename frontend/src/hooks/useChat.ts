@@ -133,23 +133,71 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
 
-        const docMsg: ChatMessage = {
-          role: 'assistant',
-          content: `Document uploaded successfully. ${data.redacted_preview ?? ''}`,
+        const syntheticMessage = documentType
+          ? `I've uploaded my ${documentType.replace(/_/g, ' ')}`
+          : "I've uploaded a document"
+
+        const userMsg: ChatMessage = {
+          role: 'user',
+          content: syntheticMessage,
           timestamp: new Date().toISOString(),
-          rich_type: 'document_status',
-          document_result: data,
         }
-        setMessages((prev) => [...prev, docMsg])
+        setMessages((prev) => [...prev, userMsg])
+
+        if (conversationIdRef.current) {
+          // Trigger LLM response with the document in context (conversation already has doc in onboarding)
+          const payload: AgentChatRequest = {
+            message: syntheticMessage,
+            conversation_id: conversationIdRef.current,
+            context_type: options.contextType ?? 'general',
+            page_context: options.pageContext,
+          }
+
+          const { data: chatData } = await api.post<AgentChatResponse>('/api/agent/chat', payload)
+
+          conversationIdRef.current = chatData.conversation_id
+
+          const assistantMsg: ChatMessage = {
+            role: 'assistant',
+            content: chatData.message,
+            timestamp: new Date().toISOString(),
+            ...(chatData.therapist_results?.length
+              ? {
+                  rich_type: 'therapist_results' as const,
+                  therapist_results: chatData.therapist_results,
+                }
+              : chatData.appointment_results?.length
+                ? {
+                    rich_type: 'appointment_results' as const,
+                    appointment_results: chatData.appointment_results,
+                  }
+                : {}),
+          }
+          setMessages((prev) => [...prev, assistantMsg])
+          setSuggestedActions(chatData.suggested_actions)
+          setOnboardingState(chatData.onboarding_state ?? inferOnboardingState(chatData))
+        } else {
+          // No conversation yet — document not attached; show static confirmation
+          const docMsg: ChatMessage = {
+            role: 'assistant',
+            content: `Document uploaded successfully. ${data.redacted_preview ?? ''}`,
+            timestamp: new Date().toISOString(),
+            rich_type: 'document_status',
+            document_result: data,
+          }
+          setMessages((prev) => [...prev, docMsg])
+        }
       } catch (err) {
+        const apiError = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
         const msg =
-          err instanceof Error ? err.message : 'Failed to upload document. Please try again.'
+          apiError ??
+          (err instanceof Error ? err.message : 'Failed to upload document. Please try again.')
         setError(msg)
       } finally {
         setIsLoading(false)
       }
     },
-    []
+    [options.contextType, options.pageContext]
   )
 
   const clearChat = useCallback(() => {

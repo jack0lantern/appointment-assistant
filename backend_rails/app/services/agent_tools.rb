@@ -422,8 +422,9 @@ class AgentTools
       end
 
       # Resolve slot_id to session_date so the booked time matches the selected slot.
-      # Slot IDs are therapist_id:ISO8601 (e.g. 5:2026-03-24T19:00:00Z). Also accept ISO8601 datetime for matching.
-      slots = SchedulingService.get_availability(therapist_id: therapist_id)
+      # Use include_booked: true so we resolve against ALL slots; SchedulingService.book_appointment
+      # will raise ConflictError if the resolved slot is already taken.
+      slots = SchedulingService.get_availability(therapist_id: therapist_id, include_booked: true)
       selected_slot = resolve_slot(slots, slot_id, therapist_id)
       session_date = selected_slot ? Time.parse(selected_slot[:start_time]) : nil
       canonical_slot_id = selected_slot ? selected_slot[:id].to_s : slot_id.to_s
