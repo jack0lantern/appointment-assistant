@@ -2,8 +2,8 @@ require "rails_helper"
 
 RSpec.describe AgentTools do
   describe "TOOL_DEFINITIONS" do
-    it "has 14 tool definitions" do
-      expect(AgentTools::TOOL_DEFINITIONS.length).to eq(14)
+    it "has 15 tool definitions" do
+      expect(AgentTools::TOOL_DEFINITIONS.length).to eq(15)
     end
 
     it "each tool has name, description, and input_schema" do

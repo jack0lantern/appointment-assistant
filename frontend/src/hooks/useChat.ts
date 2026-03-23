@@ -54,7 +54,11 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [suggestedActions, setSuggestedActions] = useState<SuggestedAction[]>([])
-  const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(null)
+  const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(
+    options.contextType === 'onboarding'
+      ? { step: 'intake', docs_verified: false, therapist_selected: false }
+      : null
+  )
   const conversationIdRef = useRef<string | null>(options.initialConversationId ?? null)
 
   const sendMessage = useCallback(

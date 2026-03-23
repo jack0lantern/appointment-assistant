@@ -26,7 +26,10 @@ class ContextBuilder
       "You are a supportive AI assistant helping a new user through the " \
       "onboarding process. Guide them step by step: welcome them, explain what to " \
       "expect, help them understand what information is needed, and make the process " \
-      "feel approachable." + BASE_RULES,
+      "feel approachable.\n" \
+      "IMPORTANT: Once the user has provided their basic intake information (name, reason " \
+      "for seeking therapy, and insurance details), call the complete_intake tool to advance " \
+      "the progress meter. Do not wait — call it as soon as you have enough info to move on." + BASE_RULES,
 
     "scheduling" =>
       "You are a supportive AI assistant helping a user schedule, reschedule, or " \

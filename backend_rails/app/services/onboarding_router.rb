@@ -20,12 +20,14 @@ class OnboardingRouter
     if user.email == DEMO_NEW_PATIENT_EMAIL
       # Hardcoded: Jordan always treated as new patient for demo
       progress.is_new_user = true
-      progress.has_completed_intake = false
+      # Don't reset has_completed_intake if already marked true by complete_intake tool
+      progress.has_completed_intake = false unless progress.has_completed_intake
       context_type = "onboarding"
     elsif client.nil?
       # Brand-new user with no Client record
       progress.is_new_user = true
-      progress.has_completed_intake = false
+      # Don't reset has_completed_intake if already marked true by complete_intake tool
+      progress.has_completed_intake = false unless progress.has_completed_intake
       context_type = "onboarding"
     elsif needs_therapist_selection?(client, progress)
       # Returning user but needs to select a therapist

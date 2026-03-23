@@ -192,6 +192,19 @@ class AgentTools
       }
     },
     {
+      name: "complete_intake",
+      description:
+        "Mark the intake step as complete after the user has provided their basic " \
+        "information (name, reason for therapy, insurance). Call this once the user " \
+        "has shared enough information to move on to the next onboarding step. " \
+        "This advances the onboarding progress meter from 'Intake' to 'Documents'.",
+      input_schema: {
+        type: "object",
+        properties: {},
+        required: []
+      }
+    },
+    {
       name: "check_document_status",
       description: "Check if the user has uploaded and verified their documents",
       input_schema: {
@@ -294,6 +307,9 @@ class AgentTools
 
     when "confirm_therapist"
       exec_confirm_therapist(input, auth_context)
+
+    when "complete_intake"
+      exec_complete_intake(auth_context)
 
     when "check_document_status"
       exec_check_document_status(auth_context)
@@ -628,6 +644,18 @@ class AgentTools
 
     def therapist_search_service
       @therapist_search_service ||= TherapistSearchService.new
+    end
+
+    def exec_complete_intake(auth_context)
+      user = User.find(auth_context.user_id)
+      conversation = user.conversations.find_by(context_type: "onboarding", status: "active")
+      return { error: "No active onboarding conversation found" } unless conversation
+
+      progress = conversation.onboarding
+      progress.has_completed_intake = true
+      conversation.save_onboarding!(progress)
+
+      { success: true, message: "Intake marked as complete. The user can now proceed to document upload." }
     end
 
     def exec_check_document_status(auth_context)

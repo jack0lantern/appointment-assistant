@@ -160,7 +160,7 @@ RSpec.describe "Agent onboarding evaluation", type: :service do
       expect(captured[:system_prompt]).not_to include("has not completed onboarding")
     end
 
-    it "does not return onboarding_state for scheduling context" do
+    it "returns onboarding_state for scheduling context (progress meter stays visible)" do
       stub_llm_and_capture_prompt
 
       result = service.process_message(
@@ -169,7 +169,8 @@ RSpec.describe "Agent onboarding evaluation", type: :service do
         context_type: "general"
       )
 
-      expect(result[:onboarding_state]).to be_nil
+      expect(result[:onboarding_state]).not_to be_nil
+      expect(result[:onboarding_state][:step]).to be_present
     end
 
     it "returns scheduling suggested actions" do
