@@ -37,7 +37,6 @@ export default function TherapistLayout() {
         <nav className="flex-1 p-3 space-y-1">
           <NavLink to="/therapist/dashboard" className={linkClass}>Dashboard</NavLink>
           <NavLink to="/therapist/clients" className={linkClass}>Clients</NavLink>
-          <NavLink to="/therapist/evaluation" className={linkClass}>Evaluation</NavLink>
         </nav>
         <div className="p-3 border-t">
           <p className="text-xs text-slate-500 mb-2">{user?.name}</p>
