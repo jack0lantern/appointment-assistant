@@ -43,6 +43,24 @@ RSpec.describe "Document Upload", type: :request do
       expect(response).to have_http_status(:unauthorized)
     end
 
+    context "with a conversation_id" do
+      let(:conversation) { create(:conversation, user: user, context_type: "onboarding") }
+
+      it "links the uploaded document to the conversation via uuid" do
+        post "/api/agent/documents/upload",
+          params: { file: file, document_type: "insurance_card", conversation_id: conversation.uuid },
+          headers: headers
+
+        expect(response).to have_http_status(:ok)
+        conversation.reload
+        progress = conversation.onboarding
+        expect(progress.docs_verified).to be true
+        expect(progress.uploaded_documents).not_to be_empty
+        json = JSON.parse(response.body)
+        expect(progress.uploaded_documents.first[:document_ref]).to eq(json["document_ref"])
+      end
+    end
+
     it "rejects uploads without file" do
       post "/api/agent/documents/upload",
         params: { document_type: "insurance_card" },

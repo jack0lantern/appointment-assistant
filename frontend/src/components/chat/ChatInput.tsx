@@ -6,7 +6,7 @@ const ACCEPTED_FILE_TYPES = '.jpg,.jpeg,.png,.pdf,.gif'
 
 interface ChatInputProps {
   onSend: (text: string) => void
-  onUpload?: (file: File, documentType?: string) => Promise<void>
+  onUpload?: (file: File, documentType?: string) => Promise<boolean>
   disabled?: boolean
   placeholder?: string
 }
@@ -51,8 +51,8 @@ export default function ChatInput({
     if (!pendingFile || !onUpload) return
     setUploading(true)
     try {
-      await onUpload(pendingFile)
-      setPendingFile(null)
+      const success = await onUpload(pendingFile)
+      if (success) setPendingFile(null)
     } finally {
       setUploading(false)
     }

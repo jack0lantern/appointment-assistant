@@ -23,7 +23,7 @@ interface UseChatReturn {
   conversationId: string | null
   onboardingState: OnboardingState | null
   sendMessage: (text: string) => Promise<void>
-  uploadDocument: (file: File, documentType?: string) => Promise<void>
+  uploadDocument: (file: File, documentType?: string) => Promise<boolean>
   clearChat: () => void
 }
 
@@ -119,7 +119,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   )
 
   const uploadDocument = useCallback(
-    async (file: File, documentType?: string) => {
+    async (file: File, documentType?: string): Promise<boolean> => {
       setIsLoading(true)
       setError(null)
 
@@ -191,12 +191,14 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           }
           setMessages((prev) => [...prev, docMsg])
         }
+        return true
       } catch (err) {
         const apiError = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
         const msg =
           apiError ??
           (err instanceof Error ? err.message : 'Failed to upload document. Please try again.')
         setError(msg)
+        return false
       } finally {
         setIsLoading(false)
       }

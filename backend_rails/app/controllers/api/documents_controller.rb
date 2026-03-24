@@ -34,6 +34,9 @@ module Api
       render json: { error: e.message }, status: :unprocessable_entity
     rescue DocumentProcessorService::FileTooLargeError => e
       render json: { error: e.message }, status: :unprocessable_entity
+    rescue StandardError => e
+      Rails.logger.error("Document upload failed: #{e.class} - #{e.message}")
+      render json: { error: "Upload failed. Please try again." }, status: :internal_server_error
     end
 
     private
@@ -41,7 +44,7 @@ module Api
     def find_conversation
       return nil unless params[:conversation_id].present?
 
-      current_user.conversations.find_by(id: params[:conversation_id])
+      current_user.conversations.find_by(uuid: params[:conversation_id])
     end
   end
 end

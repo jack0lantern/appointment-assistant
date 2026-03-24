@@ -3,7 +3,7 @@ import { Upload, FileCheck, Loader2, FileText, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface DocumentUploadProps {
-  onUpload: (file: File, documentType?: string) => Promise<void>
+  onUpload: (file: File, documentType?: string) => Promise<boolean>
   disabled?: boolean
 }
 
@@ -28,9 +28,11 @@ export default function DocumentUpload({ onUpload, disabled }: DocumentUploadPro
     if (!pendingFile) return
     setUploading(true)
     try {
-      await onUpload(pendingFile, 'insurance_card')
-      setUploaded(true)
-      setPendingFile(null)
+      const success = await onUpload(pendingFile, 'insurance_card')
+      if (success) {
+        setUploaded(true)
+        setPendingFile(null)
+      }
     } finally {
       setUploading(false)
     }
