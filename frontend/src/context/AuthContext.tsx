@@ -35,19 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     flushSync(() => {
       setUser(data.user)
     })
-    // #region agent log
-    fetch('http://127.0.0.1:7257/ingest/e733306d-eb49-4862-a616-3c2c4748159b', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7850df' },
-      body: JSON.stringify({
-        sessionId: '7850df',
-        location: 'AuthContext.tsx:login',
-        message: 'login flushSync applied',
-        data: { hypothesisId: 'H1', role: data.user?.role, id: data.user?.id },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
     return { user: data.user, needs_onboarding: data.needs_onboarding, onboard_slug: data.onboard_slug }
   }, [])
 

@@ -11,24 +11,6 @@ export class RouteErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // #region agent log
-    fetch('http://127.0.0.1:7257/ingest/e733306d-eb49-4862-a616-3c2c4748159b', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7850df' },
-      body: JSON.stringify({
-        sessionId: '7850df',
-        location: 'RouteErrorBoundary.tsx:componentDidCatch',
-        message: 'React render error',
-        data: {
-          hypothesisId: 'H2',
-          err: String(error.message),
-          stack: String(error.stack ?? '').slice(0, 800),
-          componentStack: String(info.componentStack ?? '').slice(0, 500),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {})
-    // #endregion
     console.error(error, info)
   }
 
