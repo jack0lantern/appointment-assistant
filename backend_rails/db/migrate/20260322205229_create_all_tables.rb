@@ -1,15 +1,15 @@
 class CreateAllTables < ActiveRecord::Migration[7.2]
   def change
-    create_table :users do |t|
+    create_table :users, if_not_exists: true do |t|
       t.string :email, null: false
       t.string :name, null: false
       t.string :role, limit: 50, null: false
       t.string :password_digest, null: false
       t.timestamps
     end
-    add_index :users, :email, unique: true
+    add_index :users, :email, unique: true, if_not_exists: true
 
-    create_table :therapists do |t|
+    create_table :therapists, if_not_exists: true do |t|
       t.references :user, null: false, foreign_key: true, index: { unique: true }
       t.string :license_type, limit: 50, null: false
       t.jsonb :specialties, null: false, default: []
@@ -17,16 +17,16 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.string :slug, limit: 100
       t.timestamps
     end
-    add_index :therapists, :slug, unique: true, where: "slug IS NOT NULL"
+    add_index :therapists, :slug, unique: true, where: "slug IS NOT NULL", if_not_exists: true
 
-    create_table :clients do |t|
+    create_table :clients, if_not_exists: true do |t|
       t.references :user, foreign_key: true, index: { unique: true }
       t.references :therapist, null: false, foreign_key: true
       t.string :name, null: false
       t.timestamps
     end
 
-    create_table :sessions do |t|
+    create_table :sessions, if_not_exists: true do |t|
       t.references :therapist, null: false, foreign_key: true
       t.references :client, null: false, foreign_key: true
       t.datetime :session_date
@@ -42,7 +42,7 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    create_table :transcripts do |t|
+    create_table :transcripts, if_not_exists: true do |t|
       t.references :session, null: false, foreign_key: true, index: { unique: true }
       t.text :content, null: false
       t.string :source_type, limit: 50, null: false, default: "uploaded"
@@ -52,7 +52,7 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    create_table :treatment_plans do |t|
+    create_table :treatment_plans, if_not_exists: true do |t|
       t.references :client, null: false, foreign_key: true, index: { unique: true }
       t.references :therapist, null: false, foreign_key: true
       t.bigint :current_version_id
@@ -60,7 +60,7 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    create_table :treatment_plan_versions do |t|
+    create_table :treatment_plan_versions, if_not_exists: true do |t|
       t.references :treatment_plan, null: false, foreign_key: true
       t.integer :version_number, null: false
       t.references :session, foreign_key: true
@@ -72,9 +72,11 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    add_foreign_key :treatment_plans, :treatment_plan_versions, column: :current_version_id
+    unless foreign_key_exists?(:treatment_plans, :treatment_plan_versions, column: :current_version_id)
+      add_foreign_key :treatment_plans, :treatment_plan_versions, column: :current_version_id
+    end
 
-    create_table :safety_flags do |t|
+    create_table :safety_flags, if_not_exists: true do |t|
       t.references :session, foreign_key: true
       t.references :treatment_plan_version, foreign_key: true
       t.string :flag_type, limit: 50, null: false
@@ -91,7 +93,7 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    create_table :homework_items do |t|
+    create_table :homework_items, if_not_exists: true do |t|
       t.references :treatment_plan_version, null: false, foreign_key: true
       t.references :client, null: false, foreign_key: true
       t.text :description, null: false
@@ -100,7 +102,7 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    create_table :session_summaries do |t|
+    create_table :session_summaries, if_not_exists: true do |t|
       t.references :session, null: false, foreign_key: true, index: { unique: true }
       t.text :therapist_summary
       t.text :client_summary
@@ -108,7 +110,7 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    create_table :recording_consents do |t|
+    create_table :recording_consents, if_not_exists: true do |t|
       t.references :session, null: false, foreign_key: true
       t.references :user, null: false, foreign_key: true
       t.boolean :consented, null: false
@@ -117,14 +119,14 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    create_table :evaluation_runs do |t|
+    create_table :evaluation_runs, if_not_exists: true do |t|
       t.datetime :run_at, null: false, default: -> { "NOW()" }
       t.jsonb :results, null: false
       t.boolean :overall_pass, null: false, default: false
       t.datetime :created_at, null: false, default: -> { "NOW()" }
     end
 
-    create_table :conversations do |t|
+    create_table :conversations, if_not_exists: true do |t|
       t.string :uuid, limit: 36, null: false
       t.references :user, null: false, foreign_key: true
       t.string :context_type, limit: 50, null: false, default: "general"
@@ -133,9 +135,9 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.jsonb :onboarding_progress
       t.timestamps
     end
-    add_index :conversations, :uuid, unique: true
+    add_index :conversations, :uuid, unique: true, if_not_exists: true
 
-    create_table :conversation_messages do |t|
+    create_table :conversation_messages, if_not_exists: true do |t|
       t.references :conversation, null: false, foreign_key: true
       t.string :role, limit: 20, null: false
       t.text :content, null: false

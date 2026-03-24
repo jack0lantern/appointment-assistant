@@ -36,4 +36,4 @@ ENV PORT=8000
 ENV RAILS_ENV=production
 EXPOSE 8000
 
-CMD ["sh", "-c", "bundle exec rails db:migrate 2>&1 || echo 'WARN: migration failed or skipped'; exec bundle exec puma -C config/puma.rb -p ${PORT:-8000}"]
+CMD ["sh", "-c", "bundle exec rails db:migrate && exec bundle exec puma -C config/puma.rb -p ${PORT:-8000}"]
