@@ -5,5 +5,5 @@ class TreatmentPlan < ApplicationRecord
   has_many :versions, class_name: "TreatmentPlanVersion", dependent: :destroy
 
   validates :client_id, uniqueness: true
-  validates :status, presence: true, inclusion: { in: %w[draft active archived] }
+  validates :status, presence: true, inclusion: { in: %w[draft active archived approved] }
 end

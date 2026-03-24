@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, RotateCcw } from 'lucide-react'
+import { MessageCircle, X, RotateCcw, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useChat } from '@/hooks/useChat'
 import ChatMessage from './ChatMessage'
@@ -68,11 +68,13 @@ export default function ChatWidget({ contextType = 'general', pageContext, initi
 
   return (
     <>
+      {/* Floating trigger button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full
-                     bg-teal-600 text-white shadow-lg transition-all hover:bg-teal-700 hover:scale-105
+                     bg-gradient-to-br from-teal-500 to-teal-600 text-white shadow-lg shadow-teal-200/50
+                     transition-all hover:shadow-xl hover:shadow-teal-200/50 hover:scale-105
                      focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2"
           aria-label="Open chat assistant"
         >
@@ -80,24 +82,30 @@ export default function ChatWidget({ contextType = 'general', pageContext, initi
         </button>
       )}
 
+      {/* Chat panel */}
       {isOpen && (
         <div
-          className="fixed bottom-6 right-6 z-50 flex w-[380px] flex-col rounded-2xl border
-                     border-slate-200 bg-white shadow-2xl"
-          style={{ maxHeight: 'calc(100vh - 120px)', height: '600px' }}
+          className="fixed bottom-6 right-6 z-50 flex w-[400px] flex-col rounded-2xl border
+                     border-slate-200/80 bg-white shadow-2xl shadow-slate-200/50"
+          style={{ maxHeight: 'calc(100vh - 120px)', height: '640px' }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between rounded-t-2xl bg-teal-600 px-4 py-3">
-            <div>
-              <h3 className="text-sm font-semibold text-white">Assistant</h3>
-              <p className="text-xs text-teal-100">Here to help you every step</p>
+          <div className="flex items-center justify-between rounded-t-2xl bg-gradient-to-r from-teal-500 to-teal-600 px-4 py-3.5">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+                <Bot className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-white">Assistant</h3>
+                <p className="text-[11px] text-teal-100">Here to help you every step</p>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearChat}
-                className="h-8 w-8 p-0 text-teal-100 hover:bg-teal-700 hover:text-white"
+                className="h-8 w-8 p-0 text-teal-100 hover:bg-white/10 hover:text-white"
                 aria-label="Clear chat"
               >
                 <RotateCcw className="h-4 w-4" />
@@ -106,7 +114,7 @@ export default function ChatWidget({ contextType = 'general', pageContext, initi
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsOpen(false)}
-                className="h-8 w-8 p-0 text-teal-100 hover:bg-teal-700 hover:text-white"
+                className="h-8 w-8 p-0 text-teal-100 hover:bg-white/10 hover:text-white"
                 aria-label="Close chat"
               >
                 <X className="h-4 w-4" />
@@ -115,12 +123,19 @@ export default function ChatWidget({ contextType = 'general', pageContext, initi
           </div>
 
           {/* Messages area */}
-          <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
+          <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3 bg-slate-50/50">
             {messages.length === 0 && (
-              <div className="text-center text-sm text-slate-400 py-8">
-                <p className="font-medium text-slate-600 mb-1">Welcome to Appointment Assistant</p>
-                <p>I can help with onboarding, scheduling, or just being here for you.</p>
-                <p className="mt-2 text-slate-500 text-xs">If you're in crisis, please call 988 (Suicide & Crisis Lifeline).</p>
+              <div className="flex flex-col items-center text-center py-10">
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 shadow-md shadow-teal-200/50">
+                  <Bot className="h-6 w-6 text-white" />
+                </div>
+                <p className="font-medium text-slate-700 mb-1">How can I help?</p>
+                <p className="text-xs text-slate-500 max-w-[240px] leading-relaxed">
+                  I can help with scheduling, onboarding, or just being here for you.
+                </p>
+                <p className="mt-3 text-[11px] text-slate-400">
+                  In crisis? Call <span className="font-medium text-teal-600">988</span>
+                </p>
               </div>
             )}
 
@@ -134,19 +149,22 @@ export default function ChatWidget({ contextType = 'general', pageContext, initi
             ))}
 
             {isLoading && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl rounded-bl-md bg-slate-100 px-4 py-3">
-                  <div className="flex gap-1">
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '0ms' }} />
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '150ms' }} />
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '300ms' }} />
+              <div className="flex justify-start gap-2.5">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-teal-600">
+                  <Bot className="h-3.5 w-3.5 text-white" />
+                </div>
+                <div className="rounded-2xl rounded-tl-md bg-white px-4 py-3 shadow-sm border border-slate-100">
+                  <div className="flex gap-1.5">
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-teal-400" style={{ animationDelay: '0ms' }} />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-teal-400" style={{ animationDelay: '150ms' }} />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-teal-400" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               </div>
             )}
 
             {error && (
-              <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+              <div className="rounded-xl bg-red-50 border border-red-100 px-3 py-2 text-xs text-red-600">
                 {error}
               </div>
             )}

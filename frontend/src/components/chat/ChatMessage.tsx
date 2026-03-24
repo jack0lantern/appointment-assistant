@@ -2,7 +2,7 @@ import type { ChatMessage as ChatMessageType } from '@/types/agent'
 import { cn } from '@/lib/utils'
 import TherapistCard from './TherapistCard'
 import AppointmentCard from './AppointmentCard'
-import { FileCheck } from 'lucide-react'
+import { FileCheck, Bot } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -59,6 +59,14 @@ function MarkdownContent({ content, className }: { content: string; className?: 
   )
 }
 
+function AssistantAvatar() {
+  return (
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-teal-600 shadow-sm">
+      <Bot className="h-3.5 w-3.5 text-white" />
+    </div>
+  )
+}
+
 export default function ChatMessage({
   message,
   onSelectTherapist,
@@ -69,12 +77,13 @@ export default function ChatMessage({
   // Rich rendering for therapist search results
   if (message.rich_type === 'therapist_results' && message.therapist_results?.length) {
     return (
-      <div className="flex w-full justify-start">
-        <div className="max-w-[90%] space-y-2">
-          <div className="rounded-2xl rounded-bl-md bg-slate-100 px-4 py-2.5 text-sm leading-relaxed text-slate-800">
+      <div className="flex w-full justify-start gap-2.5">
+        <AssistantAvatar />
+        <div className="max-w-[85%] space-y-2">
+          <div className="rounded-2xl rounded-tl-md bg-white px-4 py-3 text-sm leading-relaxed text-slate-800 shadow-sm border border-slate-100">
             <MarkdownContent content={message.content} />
           </div>
-          <div className="space-y-2 pl-1">
+          <div className="space-y-2">
             {message.therapist_results.map((t) => (
               <TherapistCard
                 key={t.display_label}
@@ -91,12 +100,13 @@ export default function ChatMessage({
   // Rich rendering for appointment list (cancel flow)
   if (message.rich_type === 'appointment_results' && message.appointment_results?.length) {
     return (
-      <div className="flex w-full justify-start">
-        <div className="max-w-[90%] space-y-2">
-          <div className="rounded-2xl rounded-bl-md bg-slate-100 px-4 py-2.5 text-sm leading-relaxed text-slate-800">
+      <div className="flex w-full justify-start gap-2.5">
+        <AssistantAvatar />
+        <div className="max-w-[85%] space-y-2">
+          <div className="rounded-2xl rounded-tl-md bg-white px-4 py-3 text-sm leading-relaxed text-slate-800 shadow-sm border border-slate-100">
             <MarkdownContent content={message.content} />
           </div>
-          <div className="space-y-2 pl-1">
+          <div className="space-y-2">
             {message.appointment_results.map((a) => (
               <AppointmentCard
                 key={a.session_id}
@@ -113,8 +123,9 @@ export default function ChatMessage({
   // Rich rendering for document upload status
   if (message.rich_type === 'document_status' && message.document_result) {
     return (
-      <div className="flex w-full justify-start">
-        <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-green-50 px-4 py-3 text-sm">
+      <div className="flex w-full justify-start gap-2.5">
+        <AssistantAvatar />
+        <div className="max-w-[80%] rounded-2xl rounded-tl-md border border-green-100 bg-green-50 px-4 py-3 text-sm shadow-sm">
           <div className="flex items-center gap-2 text-green-700 font-medium mb-1">
             <FileCheck className="h-4 w-4" />
             Document Verified
@@ -123,7 +134,7 @@ export default function ChatMessage({
             <MarkdownContent content={message.content} className="text-xs [&_*]:text-xs" />
           </div>
           {message.document_result.fields && message.document_result.fields.length > 0 && (
-            <div className="mt-2 space-y-1">
+            <div className="mt-2 space-y-1 rounded-lg bg-green-100/50 p-2">
               {message.document_result.fields.map((f) => (
                 <div key={f.field_name} className="flex justify-between text-xs text-green-700">
                   <span className="font-medium capitalize">{f.field_name.replace('_', ' ')}</span>
@@ -138,21 +149,21 @@ export default function ChatMessage({
   }
 
   // Default text rendering
-  return (
-    <div className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
-      <div
-        className={cn(
-          'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
-          isUser
-            ? 'bg-teal-600 text-white rounded-br-md'
-            : 'bg-slate-100 text-slate-800 rounded-bl-md'
-        )}
-      >
-        {isUser ? (
+  if (isUser) {
+    return (
+      <div className="flex w-full justify-end">
+        <div className="max-w-[80%] rounded-2xl rounded-br-md bg-teal-600 px-4 py-3 text-sm leading-relaxed text-white shadow-sm">
           <div className="whitespace-pre-wrap break-words">{message.content}</div>
-        ) : (
-          <MarkdownContent content={message.content} />
-        )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex w-full justify-start gap-2.5">
+      <AssistantAvatar />
+      <div className="max-w-[80%] rounded-2xl rounded-tl-md bg-white px-4 py-3 text-sm leading-relaxed text-slate-800 shadow-sm border border-slate-100">
+        <MarkdownContent content={message.content} />
       </div>
     </div>
   )

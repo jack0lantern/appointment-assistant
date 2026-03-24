@@ -14,8 +14,16 @@ Rails.application.routes.draw do
     get "therapist/appointments" => "therapist_appointments#index"
     get "my/appointments" => "client_appointments#index"
     get "my/sessions" => "client_sessions#index"
+    get "my/treatment-plan" => "my_treatment_plans#show"
     get "my/homework" => "homework#index"
     patch "homework/:id" => "homework#update"
+
+    get "treatment-plans/draft" => "treatment_plans#draft"
+    post "treatment-plans/:id/approve" => "treatment_plans#approve"
+    post "treatment-plans/:id/edit" => "treatment_plans#edit"
+    get "treatment-plans/:id/versions" => "treatment_plans#versions"
+    get "treatment-plans/:id/diff" => "treatment_plans#diff"
+    patch "safety-flags/:id/acknowledge" => "safety_flags#acknowledge"
 
     post "agent/chat" => "agent#chat"
     get "agent/scheduling/availability" => "agent_scheduling#availability"

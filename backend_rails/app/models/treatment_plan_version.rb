@@ -5,5 +5,5 @@ class TreatmentPlanVersion < ApplicationRecord
   has_many :homework_items, dependent: :destroy
 
   validates :version_number, presence: true, numericality: { greater_than: 0 }
-  validates :source, presence: true, inclusion: { in: %w[ai_generated manual_edit] }
+  validates :source, presence: true, inclusion: { in: %w[ai_generated manual_edit therapist_edit] }
 end

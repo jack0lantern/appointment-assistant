@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Heart, Shield, ArrowLeft } from 'lucide-react'
 
 export default function ClientLogin() {
   const [email, setEmail] = useState('')
@@ -20,7 +21,6 @@ export default function ClientLogin() {
     setLoading(true)
     try {
       const result = await login(email, password, 'client')
-      // Check for pending onboard slug (set by /onboard/:slug before auth redirect)
       const pendingSlug = localStorage.getItem('onboard_slug')
       if (pendingSlug) {
         localStorage.removeItem('onboard_slug')
@@ -41,51 +41,81 @@ export default function ClientLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-white">
-      <Card className="w-full max-w-sm shadow-lg border-teal-100">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl text-teal-900">Client Login</CardTitle>
-          <p className="text-sm text-muted-foreground">Sign in to access your care</p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-          <div className="mt-4 text-center">
-            <Link to="/login" className="text-sm text-teal-600 hover:text-teal-800">
-              ← Back to login
-            </Link>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-teal-50 via-white to-emerald-50">
+      <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-teal-100/40 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-emerald-100/40 blur-3xl" />
+
+      <div className="relative z-10 w-full max-w-sm px-6">
+        {/* Logo */}
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 shadow-lg shadow-teal-200">
+            <Heart className="h-7 w-7 text-white" />
           </div>
-          <div className="mt-4 text-xs text-muted-foreground text-center space-y-1">
-            <p>Demo: client@demo.health / demo123</p>
-            <p>Demo (new patient flow): jordan.kim@demo.health / demo123</p>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <Card className="border-slate-200/80 shadow-lg">
+          <CardHeader className="text-center pb-4">
+            <CardTitle className="text-xl text-slate-900">Welcome back</CardTitle>
+            <p className="text-sm text-slate-500">Sign in to access your care</p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-slate-700">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-slate-700">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-11"
+                />
+              </div>
+              {error && (
+                <div className="rounded-lg bg-red-50 border border-red-100 px-3 py-2 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+              <Button
+                type="submit"
+                className="h-11 w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 shadow-sm"
+                disabled={loading}
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </form>
+
+            <div className="mt-5 text-center">
+              <Link to="/login" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-600 transition-colors">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Back
+              </Link>
+            </div>
+
+            <div className="mt-5 rounded-lg bg-slate-50 p-3 text-xs text-slate-500 text-center space-y-0.5">
+              <p>Demo: <span className="font-medium">client@demo.health</span> / demo123</p>
+              <p>New patient: <span className="font-medium">jordan.kim@demo.health</span> / demo123</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
+          <Shield className="h-3.5 w-3.5" />
+          <span>Your data is encrypted and private</span>
+        </div>
+      </div>
     </div>
   )
 }
