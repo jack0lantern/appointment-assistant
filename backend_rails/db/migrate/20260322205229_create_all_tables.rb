@@ -7,7 +7,9 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.string :password_digest, null: false
       t.timestamps
     end
-    add_index :users, :email, unique: true, if_not_exists: true
+    if column_exists?(:users, :email)
+      add_index :users, :email, unique: true, if_not_exists: true
+    end
 
     create_table :therapists, if_not_exists: true do |t|
       t.references :user, null: false, foreign_key: true, index: { unique: true }
@@ -16,6 +18,10 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.jsonb :preferences, null: false, default: {}
       t.string :slug, limit: 100
       t.timestamps
+    end
+    # Legacy DBs may already have therapists without slug; create_table was skipped.
+    unless column_exists?(:therapists, :slug)
+      add_column :therapists, :slug, :string, limit: 100
     end
     add_index :therapists, :slug, unique: true, where: "slug IS NOT NULL", if_not_exists: true
 
@@ -135,7 +141,14 @@ class CreateAllTables < ActiveRecord::Migration[7.2]
       t.jsonb :onboarding_progress
       t.timestamps
     end
-    add_index :conversations, :uuid, unique: true, if_not_exists: true
+    if table_exists?(:conversations) && !column_exists?(:conversations, :uuid)
+      add_column :conversations, :uuid, :string, limit: 36
+      execute "UPDATE conversations SET uuid = gen_random_uuid()::text WHERE uuid IS NULL"
+      change_column_null :conversations, :uuid, false
+    end
+    if column_exists?(:conversations, :uuid)
+      add_index :conversations, :uuid, unique: true, if_not_exists: true
+    end
 
     create_table :conversation_messages, if_not_exists: true do |t|
       t.references :conversation, null: false, foreign_key: true
