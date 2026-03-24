@@ -36,8 +36,13 @@ Rails.application.configure do
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = true
 
-  # Skip http-to-https redirect for the default health check endpoint.
-  # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+  # Railway (and other platforms) hit the app over HTTP for container health checks; exclude those paths
+  # from the redirect so probes get 200 instead of 301/302 (which show as "service unavailable").
+  config.ssl_options = {
+    redirect: {
+      exclude: ->(request) { request.path == "/up" || request.path == "/health" },
+    },
+  }
 
   # Log to STDOUT by default
   config.logger = ActiveSupport::Logger.new(STDOUT)
