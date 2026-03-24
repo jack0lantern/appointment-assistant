@@ -3,13 +3,13 @@ default: &default
   encoding: unicode
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
   host: localhost
-  port: 5433
+  port: 5430
   username: postgres
   password: postgres
 
 development:
   <<: *default
-  database: tava_development
+  database: appointment_development
 
 test:
   <<: *default

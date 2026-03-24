@@ -31,6 +31,30 @@ RSpec.describe AgentService do
         expect(result[:message]).not_to include("[EMAIL_1]")
       end
 
+      it "restores [NAME_1] from prior turn when current message has no PII" do
+        # Turn 1: user shared name; turn 2: user asks "What's my name?" — LLM echoes [NAME_1] from history
+        conversation = create(:conversation, user: user)
+        conversation.messages.create!(role: "user", content: "My name is [NAME_1]")
+        conversation.messages.create!(
+          role: "assistant",
+          content: "Nice to meet you Sarah Johnson! How can I help?"
+        )
+        # Persist the mapping from turn 1 so we can restore in turn 2
+        conversation.update!(redaction_mappings: { "[NAME_1]" => "Sarah Johnson" })
+
+        stub_llm_text_response("Your name is [NAME_1].")
+
+        result = service.process_message(
+          message: "What's my name?",
+          user: user,
+          conversation_id: conversation.uuid,
+          context_type: "general"
+        )
+
+        expect(result[:message]).to include("Sarah Johnson")
+        expect(result[:message]).not_to include("[NAME_1]")
+      end
+
       it "redacts PII from user message before sending to LLM" do
         stub_llm_text_response("Hello! How can I help?")
 

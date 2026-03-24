@@ -18,4 +18,4 @@
 - Rails backend: `cd backend_rails && bundle exec rails s -p 8000`
 - Rails tests: `cd backend_rails && bundle exec rspec`
 - Frontend: `cd frontend && npm run dev` (port 5173, expects backend on 8000)
-- Docker: `docker-compose up -d` (Postgres 5433, MinIO 9002, LiveKit 7880)
+- Docker: `docker-compose up -d` (Postgres 5430, MinIO 9002, LiveKit 7880)

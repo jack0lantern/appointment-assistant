@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_22_205229) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_23_044006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -43,6 +43,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_22_205229) do
     t.jsonb "onboarding_progress"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "redaction_mappings", default: {}
     t.index ["user_id"], name: "index_conversations_on_user_id"
     t.index ["uuid"], name: "index_conversations_on_uuid", unique: true
   end

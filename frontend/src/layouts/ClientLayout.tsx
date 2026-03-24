@@ -32,8 +32,8 @@ export default function ClientLayout() {
     }`
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-white">
-      <header className="bg-white border-b shadow-sm">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-teal-50 to-white">
+      <header className="bg-white border-b shadow-sm shrink-0">
         <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-teal-900">Appointment Assistant</h1>
@@ -50,7 +50,7 @@ export default function ClientLayout() {
           </div>
         </div>
       </header>
-      <main className="max-w-4xl mx-auto px-6 py-8">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-8">
         <Outlet />
       </main>
       <PrivacyDisclaimer />

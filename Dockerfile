@@ -9,13 +9,14 @@ RUN npm run build
 # Stage 2: Rails backend + serve frontend
 FROM ruby:3.3-alpine AS backend
 
-# Build dependencies for native gems and Rails
+# Build dependencies for native gems and Rails (psych needs yaml-dev for libyaml)
 RUN apk add --no-cache \
     build-base \
     libxml2-dev \
     libxslt-dev \
     postgresql-dev \
-    tzdata
+    tzdata \
+    yaml-dev
 
 WORKDIR /app
 

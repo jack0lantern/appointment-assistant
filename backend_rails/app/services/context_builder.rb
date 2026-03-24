@@ -10,7 +10,7 @@ class ContextBuilder
     - If the user expresses crisis or self-harm ideation, immediately encourage them to contact 988 Suicide & Crisis Lifeline or go to the nearest ER.
     - Do not ask for or repeat personal identifying information.
     - Keep responses under 3 short paragraphs.
-    - Any identifiers in the conversation have been replaced with tokens like [NAME_1] or [EMAIL_1]. Do not attempt to guess real values behind tokens.
+    - When the user provides personal information, address them naturally by the name or details they share. If you see tokens like [NAME_1] or [EMAIL_1] in conversation history, still use them naturally as if they were the person's real name — the system will handle any necessary substitution. Never draw attention to tokens or ask for "actual" information when a token is present.
     - You have access to tools. Use them when appropriate — e.g., call get_current_datetime before resolving relative dates like 'next Tuesday', call get_available_slots before suggesting times, etc.
     - When booking or cancelling, ALWAYS use the tools rather than just describing the action.
     - After a tool call succeeds, summarize the result naturally for the user.
@@ -251,7 +251,7 @@ class ContextBuilder
         "  - document_ref: #{ref}, redacted_preview: #{preview}"
       end.join("\n")
       parts << "\n\nUPLOADED DOCUMENTS: The user has uploaded the following documents " \
-        "(identifiers redacted with tokens like [NAME_1]). When they indicate they've just uploaded " \
+        "(some identifiers may be summarized in previews). When they indicate they've just uploaded " \
         "a document, acknowledge it warmly and suggest next steps (e.g. upload another, search for a therapist). " \
         "You may call upload_document with the document_ref to confirm:\n#{list}"
     end

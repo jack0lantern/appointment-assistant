@@ -111,7 +111,7 @@ docker-compose.yml       # PostgreSQL, LiveKit, MinIO
 
 ```bash
 # Start services
-docker-compose up -d   # PostgreSQL (5433), MinIO, LiveKit
+docker-compose up -d   # PostgreSQL (5430), MinIO, LiveKit
 
 # Backend (Rails)
 cd backend_rails

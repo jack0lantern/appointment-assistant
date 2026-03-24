@@ -43,7 +43,7 @@ AI-powered mental health onboarding and treatment assistant. Helps clients with 
                                 └──────────────┬───────────────┘
                                                │
                                 ┌──────────────▼───────────────┐
-                                │  PostgreSQL (port 5433)       │
+                                │  PostgreSQL (port 5430)       │
                                 │  JSONB for plan content       │
                                 └──────────────────────────────┘
 ```
@@ -254,6 +254,10 @@ curl -N -X POST http://localhost:8000/api/evaluation/run \
 
 # Backend tests include safety, redaction, and plan validation
 cd backend_rails && bundle exec rspec spec/services/
+
+# Golden set (live LLM) — 17 tests that call Claude to verify agent output quality
+# Requires ANTHROPIC_API_KEY; excluded from default rspec
+cd backend_rails && bundle exec rspec spec/services/golden_set_eval_spec.rb --tag golden
 ```
 
 ### Fixture Transcripts

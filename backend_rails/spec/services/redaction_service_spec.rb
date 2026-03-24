@@ -111,6 +111,29 @@ RSpec.describe RedactionService do
     end
   end
 
+  # ── Cross-turn persistence (load_mappings / export_mappings) ─────────
+
+  describe "load_mappings and export_mappings" do
+    it "restores tokens from loaded mappings when current message has no PII" do
+      redactor.load_mappings({ "[NAME_1]" => "Sarah Johnson" })
+      restored = redactor.restore("Your name is [NAME_1].")
+      expect(restored).to eq("Your name is Sarah Johnson.")
+    end
+
+    it "exports mappings for persistence" do
+      redactor.redact("My name is Jane Doe")
+      exported = redactor.export_mappings
+      expect(exported).to have_key("[NAME_1]")
+      expect(exported["[NAME_1]"]).to eq("Jane Doe")
+    end
+
+    it "advances counters when loading so new PII gets unique tokens" do
+      redactor.load_mappings({ "[NAME_1]" => "Alice", "[NAME_2]" => "Bob" })
+      result = redactor.redact("Patient name: Carol Smith")
+      expect(result.redacted_text).to include("[NAME_3]")
+    end
+  end
+
   # ── Stable token mapping ─────────────────────────────────────────────
 
   describe "stable token mapping" do

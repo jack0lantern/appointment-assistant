@@ -6,7 +6,7 @@
 |-------|--------|
 | Backend | Ruby on Rails 7+ (API mode) |
 | ORM | ActiveRecord + Rails migrations |
-| Database | PostgreSQL (port 5433, JSONB for plan content, onboarding progress) |
+| Database | PostgreSQL (port 5430, JSONB for plan content, onboarding progress) |
 | Serialization | Blueprinter |
 | AI | anthropic-rb, Claude Sonnet 4.6 |
 | Frontend | React 18 + Vite + TypeScript |

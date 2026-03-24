@@ -115,8 +115,8 @@ export default function ChatWidget({ contextType = 'general', pageContext, initi
             </div>
           </div>
 
-          {/* Onboarding progress indicator */}
-          {onboardingState && <OnboardingProgress state={onboardingState} />}
+          {/* Onboarding progress indicator - hidden for now */}
+          {false && onboardingState && <OnboardingProgress state={onboardingState} />}
 
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">

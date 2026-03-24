@@ -80,6 +80,33 @@ class RedactionService
     result
   end
 
+  # Seed mappings from a prior conversation turn so restore() can replace tokens
+  # from history when the current message has no PII.
+  # @param mappings [Hash] { "[NAME_1]" => "John Smith", "[EMAIL_1]" => "john@test.com", ... }
+  def load_mappings(mappings)
+    return if mappings.nil? || mappings.empty?
+
+    mappings = mappings.stringify_keys
+    mappings.each do |token, original|
+      @token_to_original[token] = original
+      @original_to_token[original] = token
+    end
+    # Advance counters so new PII gets unique tokens
+    mappings.each_key do |token|
+      next unless token =~ /\A\[([A-Z]+)_(\d+)\]\z/
+
+      pii_type = Regexp.last_match(1)
+      n = Regexp.last_match(2).to_i
+      @counters[pii_type] = [@counters[pii_type], n].max
+    end
+  end
+
+  # Export current token→original mapping for persistence (e.g. per-conversation).
+  # @return [Hash] { "[NAME_1]" => "John Smith", ... }
+  def export_mappings
+    @token_to_original.dup
+  end
+
   def filter_fields(data, allowed_fields)
     data.select { |k, _| allowed_fields.include?(k) }
   end

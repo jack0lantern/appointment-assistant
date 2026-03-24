@@ -141,7 +141,8 @@ class AgentService
       effective_context = routing[:context_type]
     end
 
-    # 5. Redact PII
+    # 5. Redact PII (load prior turn mappings so we can restore tokens from history)
+    @redactor.load_mappings(conversation.redaction_mappings || {})
     redaction_result = @redactor.redact(message)
     redacted_message = redaction_result.redacted_text
 
@@ -215,6 +216,10 @@ class AgentService
     # 12. Persist messages
     save_message(conversation: conversation, role: "user", content: redacted_message)
     save_message(conversation: conversation, role: "assistant", content: response_text)
+
+    # Persist redaction mappings so future turns can restore tokens from history
+    merged = (conversation.redaction_mappings || {}).merge(@redactor.export_mappings)
+    conversation.update_column(:redaction_mappings, merged) if merged.present?
 
     # Update conversation context type if it changed
     conversation.update!(context_type: effective_context) if conversation.context_type != effective_context
