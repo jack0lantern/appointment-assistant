@@ -53,6 +53,10 @@ export default function PlanView() {
   }
 
   const clientContent = plan?.current_version?.client_content
+  const yourGoals = clientContent?.your_goals ?? []
+  const thingsToTry = clientContent?.things_to_try ?? []
+  const yourStrengths = clientContent?.your_strengths ?? []
+  const nextSteps = clientContent?.next_steps ?? []
 
   if (!clientContent) {
     return (
@@ -92,13 +96,13 @@ export default function PlanView() {
       )}
 
       {/* Your Goals */}
-      {clientContent.your_goals.length > 0 && (
+      {yourGoals.length > 0 && (
         <PlanSectionClient
           icon={<span className="text-sm">&#127793;</span>}
           title="Your Goals"
         >
           <ul className="space-y-2">
-            {clientContent.your_goals.map((g, i) => (
+            {yourGoals.map((g, i) => (
               <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-slate-700">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-400" />
                 {g}
@@ -109,13 +113,13 @@ export default function PlanView() {
       )}
 
       {/* Things to Try */}
-      {clientContent.things_to_try.length > 0 && (
+      {thingsToTry.length > 0 && (
         <PlanSectionClient
           icon={<span className="text-sm">&#128221;</span>}
           title="Things to Try Before Next Session"
         >
           <ul className="space-y-2">
-            {clientContent.things_to_try.map((item, i) => (
+            {thingsToTry.map((item, i) => (
               <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-slate-700">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-400" />
                 {item}
@@ -126,13 +130,13 @@ export default function PlanView() {
       )}
 
       {/* Your Strengths */}
-      {clientContent.your_strengths.length > 0 && (
+      {yourStrengths.length > 0 && (
         <PlanSectionClient
           icon={<span className="text-sm">&#128170;</span>}
           title="Your Strengths"
         >
           <div className="flex flex-wrap gap-2">
-            {clientContent.your_strengths.map((item, i) => (
+            {yourStrengths.map((item, i) => (
               <span
                 key={i}
                 className="rounded-full bg-emerald-50 border border-emerald-200 px-4 py-1.5 text-sm text-emerald-700"
@@ -145,13 +149,13 @@ export default function PlanView() {
       )}
 
       {/* Next Steps */}
-      {clientContent.next_steps && clientContent.next_steps.length > 0 && (
+      {nextSteps.length > 0 && (
         <PlanSectionClient
           icon={<span className="text-sm">&#128161;</span>}
           title="Next Steps"
         >
           <ul className="space-y-2">
-            {clientContent.next_steps.map((item, i) => (
+            {nextSteps.map((item, i) => (
               <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-slate-700">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-400" />
                 {item}

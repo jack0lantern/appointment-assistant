@@ -32,6 +32,21 @@ module Api
 
       sessions = client.sessions.where(status: "completed").order(session_date: :desc, id: :desc).limit(10)
       plan = client.treatment_plan
+      # #region agent log
+      begin
+        File.open("/Users/jackjiang/GitHub/partner-projects/appointment-assistant/.cursor/debug-3b6b0a.log", "a") do |f|
+          f.puts({
+            sessionId: "3b6b0a",
+            hypothesisId: "H1",
+            location: "Api::ClientsController#show",
+            message: "treatment plan record state",
+            data: { param_id: params[:id].to_s, plan_present: plan.present?, plan_id: plan&.id },
+            timestamp: (Time.now.to_f * 1000).to_i,
+          }.to_json)
+        end
+      rescue StandardError
+      end
+      # #endregion
       session_ids = client.sessions.pluck(:id)
       version_ids = TreatmentPlanVersion.joins(:treatment_plan).where(treatment_plans: { client_id: client.id }).pluck(:id)
       safety_flags = SafetyFlag
@@ -39,10 +54,29 @@ module Api
         .or(SafetyFlag.where(treatment_plan_version_id: version_ids))
 
       treatment_plan_hash = if plan
-        base = TreatmentPlanBlueprint.render_as_hash(plan)
-        base["current_version"] = plan.current_version ? TreatmentPlanVersionBlueprint.render_as_hash(plan.current_version) : nil
-        base["versions"] = plan.versions.map { |v| TreatmentPlanVersionBlueprint.render_as_hash(v) }
-        base
+        begin
+          base = TreatmentPlanBlueprint.render_as_hash(plan)
+          base["current_version"] = plan.current_version ? TreatmentPlanVersionBlueprint.render_as_hash(plan.current_version) : nil
+          base["versions"] = plan.versions.map { |v| TreatmentPlanVersionBlueprint.render_as_hash(v) }
+          base
+        rescue StandardError => e
+          # #region agent log
+          begin
+            File.open("/Users/jackjiang/GitHub/partner-projects/appointment-assistant/.cursor/debug-3b6b0a.log", "a") do |f|
+              f.puts({
+                sessionId: "3b6b0a",
+                hypothesisId: "H4",
+                location: "Api::ClientsController#show",
+                message: "treatment_plan serialization error",
+                data: { error_class: e.class.name },
+                timestamp: (Time.now.to_f * 1000).to_i,
+              }.to_json)
+            end
+          rescue StandardError
+          end
+          # #endregion
+          raise
+        end
       end
 
       render json: {

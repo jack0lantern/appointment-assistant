@@ -129,36 +129,58 @@ unless Session.exists?(client_id: alex_client.id)
     version_number:    1,
     session_id:        sess1.id,
     source:            "ai_generated",
-    change_summary:    "Initial treatment plan following intake assessment.",
+    change_summary:    "Initial treatment plan following intake assessment (seed / demo).",
     therapist_content: {
-      "presenting_issues" => "Generalized anxiety disorder features with social anxiety component. Onset 6 months ago following workplace reorganization. Reports post-event processing, sleep-maintenance insomnia, and anhedonia.",
-      "diagnosis"         => "Generalized Anxiety Disorder (provisional), rule out Social Anxiety Disorder",
-      "goals"             => [
-        "Reduce frequency and intensity of worry episodes",
-        "Improve sleep continuity",
-        "Re-engage with valued activities (guitar)",
-        "Develop skills to manage post-event rumination"
+      "presenting_concerns" => [
+        "Generalized anxiety with social features; onset ~6 months after workplace reorganization",
+        "Post-event processing after meetings; sleep-maintenance insomnia (waking 2–3 AM with rumination)",
+        "Reduced engagement in valued activities (e.g., guitar)"
       ],
-      "interventions"     => [
-        "Psychoeducation on anxiety and CBT model",
-        "Worry journaling and self-monitoring",
-        "Cognitive restructuring / thought records",
-        "Behavioral activation",
-        "Sleep hygiene and stimulus control",
-        "Exposure to social situations (graduated)"
+      "goals" => [
+        { "description" => "Reduce frequency and intensity of worry episodes", "modality" => "CBT", "timeframe" => "8–12 weeks" },
+        { "description" => "Improve sleep continuity", "modality" => "CBT / behavioral", "timeframe" => "ongoing" },
+        { "description" => "Re-engage with valued activities (guitar)", "modality" => "Behavioral activation", "timeframe" => "4–8 weeks" },
+        { "description" => "Develop skills to manage post-event rumination", "modality" => "CBT", "timeframe" => "8–12 weeks" }
       ],
-      "target_symptoms"   => ["rumination", "post-event processing", "sleep disruption", "social self-monitoring", "anhedonia"],
-      "strengths"         => ["Good insight", "Motivated for change", "Articulate and reflective", "Supportive work environment (despite stress)"]
+      "interventions" => [
+        { "name" => "Psychoeducation", "modality" => "CBT", "description" => "Anxiety model, post-event processing, overview of CBT" },
+        { "name" => "Self-monitoring", "modality" => "CBT", "description" => "Worry journal (trigger, content, intensity 1–10)" },
+        { "name" => "Cognitive restructuring", "modality" => "CBT", "description" => "Thought records and examining evidence" },
+        { "name" => "Behavioral activation", "modality" => "BA", "description" => "Scheduling pleasant and mastery activities" },
+        { "name" => "Sleep skills", "modality" => "CBT-I (intro)", "description" => "Sleep hygiene and deferring worry overnight" },
+        { "name" => "Graduated exposure", "modality" => "CBT", "description" => "Planned approach to feared social work situations" }
+      ],
+      "homework" => [
+        "Worry journal: when worry appears, note trigger, worry content, and intensity (1–10); observation only this week"
+      ],
+      "strengths" => [
+        "Strong insight and motivation",
+        "Articulate; engaged in first session",
+        "Able to link symptoms to work context"
+      ],
+      "diagnosis_considerations" => [
+        "Generalized Anxiety Disorder (provisional); rule out Social Anxiety Disorder"
+      ]
     },
     client_content: {
-      "goals"        => [
-        "Worry less and feel more in control day-to-day",
+      "what_we_talked_about" =>
+        "We mapped worry that spikes after work meetings, waking up at night with racing thoughts, and losing touch with things you used to enjoy (like guitar). We named the pattern of replaying conversations after they happen (post-event processing) and talked about how CBT can help.",
+      "your_goals" => [
+        "Feel more in control of worry day to day",
         "Sleep through the night more often",
-        "Get back to playing guitar and things I used to enjoy",
-        "Feel more confident in work meetings"
+        "Get back to guitar and activities that matter to you",
+        "Feel steadier in work meetings"
       ],
-      "focus_areas"  => ["Managing anxious thoughts", "Getting better sleep", "Doing things that matter to you", "Social confidence at work"],
-      "strengths"    => ["You have great self-awareness", "You're willing to try new approaches", "You can clearly describe what you're experiencing"]
+      "things_to_try" => [
+        "Use a simple worry journal when worry shows up (no fixing yet—just notice)",
+        "Note what triggered the worry and how strong it felt (1–10)"
+      ],
+      "your_strengths" => [
+        "You explain your experience clearly",
+        "You're open to trying CBT tools",
+        "You already see how work stress connects to symptoms"
+      ],
+      "next_steps" => ["Bring your worry journal notes to the next session"]
     }
   )
 
@@ -395,37 +417,62 @@ unless Session.exists?(client_id: alex_client.id)
     version_number:    2,
     session_id:        sess4.id,
     source:            "ai_generated",
-    change_summary:    "Updated after first panic attack. Added grounding techniques and core belief work as new intervention targets.",
+    change_summary:    "Updated after first panic attack: grounding, core belief work, continued CBT (seed / demo).",
     therapist_content: {
-      "presenting_issues" => "Generalized anxiety with social anxiety features. First panic attack documented (Feb 19). Underlying core belief identified: self-worth contingent on demonstrating ambition and career clarity. Good response to CBT and behavioral activation.",
-      "diagnosis"         => "Panic Disorder (new, provisional), Generalized Anxiety Disorder, Social Anxiety Disorder features",
-      "goals"             => [
-        "Reduce frequency and intensity of worry episodes",
-        "Eliminate or reduce panic attacks using early intervention",
-        "Address core belief: 'I must be ambitious/have a plan to deserve my position'",
-        "Sustain behavioral activation (guitar, running, social engagement)",
-        "Improve sleep continuity"
+      "presenting_concerns" => [
+        "Generalized anxiety with social features; first panic attack documented (Feb 19) during 1:1",
+        "Core belief surfaced: self-worth tied to demonstrating ambition and clear career trajectory",
+        "Strong response to thought records, behavioral activation, and sleep deferral strategies"
       ],
-      "interventions"     => [
-        "Cognitive restructuring / thought records (ongoing)",
-        "5-4-3-2-1 grounding technique (new)",
-        "Interoceptive exposure (future — desensitize to panic sensations)",
-        "Core belief identification and schema work",
-        "Behavioral activation (ongoing)",
-        "Sleep hygiene"
+      "goals" => [
+        { "description" => "Reduce panic symptoms using early skills (grounding, psychoeducation)", "modality" => "CBT", "timeframe" => "4–6 weeks" },
+        { "description" => "Continue thought records for high-intensity worry", "modality" => "CBT", "timeframe" => "ongoing" },
+        { "description" => "Examine and revise core belief about deserving one's role", "modality" => "CBT / schema-informed", "timeframe" => "8+ weeks" },
+        { "description" => "Sustain behavioral activation (guitar, running, social engagement)", "modality" => "BA", "timeframe" => "ongoing" },
+        { "description" => "Improve sleep continuity", "modality" => "CBT-I (intro)", "timeframe" => "ongoing" }
       ],
-      "target_symptoms"   => ["panic attacks", "rumination", "post-event processing", "sleep disruption", "core belief: deserving position", "social self-monitoring"],
-      "strengths"         => ["Excellent response to thought records", "Strong follow-through on homework", "Behavioral activation working well", "Good insight into triggers"]
+      "interventions" => [
+        { "name" => "Grounding", "modality" => "CBT", "description" => "5-4-3-2-1 sensory grounding; practice daily when calm" },
+        { "name" => "Panic psychoeducation", "modality" => "CBT", "description" => "Fight-or-flight loop, benign nature of sensations" },
+        { "name" => "Thought records", "modality" => "CBT", "description" => "Evidence for/against; balanced thoughts (ongoing)" },
+        { "name" => "Core belief work", "modality" => "CBT", "description" => "Identify and test beliefs about competence and belonging" },
+        { "name" => "Behavioral activation", "modality" => "BA", "description" => "Pleasure/mastery scheduling (guitar, running)" },
+        { "name" => "Sleep skills", "modality" => "CBT-I (intro)", "description" => "Defer worry overnight; stimulus control as needed" }
+      ],
+      "homework" => [
+        "Practice 5-4-3-2-1 grounding once daily when calm",
+        "Complete one thought record for any worry rated 7+",
+        "Continue guitar and running at least once each this week"
+      ],
+      "strengths" => [
+        "Excellent homework follow-through",
+        "Presentation success with positive feedback",
+        "Uses behavioral activation with observable mood benefit"
+      ],
+      "diagnosis_considerations" => [
+        "Panic Disorder (provisional, single episode); Generalized Anxiety Disorder; Social Anxiety features"
+      ]
     },
     client_content: {
-      "goals"        => [
-        "Understand and stop panic attacks before they spiral",
-        "Challenge the belief that I have to always have a plan to belong",
-        "Keep up guitar and running — they're working",
-        "Feel more comfortable being asked hard questions at work"
+      "what_we_talked_about" =>
+        "You experienced a panic attack at work—we covered what happens in your body and why it feels scary but is not dangerous. You learned 5-4-3-2-1 grounding. We also connected panic to worries about career goals and feeling like you have to prove you belong.",
+      "your_goals" => [
+        "Catch panic early and use grounding before it spirals",
+        "Question the story that you need a perfect five-year plan to deserve your job",
+        "Keep guitar and running going—they're helping your mood",
+        "Stay steady when tough questions come up at work"
       ],
-      "focus_areas"  => ["Grounding during panic", "Challenging the 'deserve to be here' belief", "Building on behavioral activation", "Continued thought records"],
-      "strengths"    => ["You completed every homework assignment", "The presentation went well and you handled questions", "Behavioral activation is already improving your mood"]
+      "things_to_try" => [
+        "Daily grounding practice (even when you feel fine)",
+        "One full thought record on your toughest worry this week",
+        "Keep up short music and movement breaks you already started"
+      ],
+      "your_strengths" => [
+        "You reached out quickly after the panic attack",
+        "Your presentation went well—you handled questions",
+        "You're building real coping skills, not just coping day-to-day"
+      ],
+      "next_steps" => ["Report back on grounding and thought records next session"]
     }
   )
 
@@ -514,15 +561,80 @@ unless Session.exists?(client_id: alex_client.id)
     key_themes:        ["progress review", "grounding success", "exposure working", "social event", "core belief challenge", "manager feedback", "group meeting anxiety", "anticipatory anxiety", "team lunch goal"]
   )
 
+  tpv3 = TreatmentPlanVersion.create!(
+    treatment_plan_id: tplan.id,
+    version_number:    3,
+    session_id:        sess5.id,
+    source:            "ai_generated",
+    change_summary:    "Progress review after session 5: grounding generalized, core belief challenged by real-world data; focus shifts to group settings and planned exposure (seed / demo).",
+    therapist_content: {
+      "presenting_concerns" => [
+        "Marked gains: no panic since session 4; grounding used in work and social contexts",
+        "Core belief about ambition/deserving role weakened after supportive manager conversation",
+        "Residual group-meeting anxiety and post-event processing in larger forums"
+      ],
+      "goals" => [
+        { "description" => "Maintain panic management skills and early use of grounding", "modality" => "CBT", "timeframe" => "ongoing" },
+        { "description" => "Increase behavioral participation in group work settings", "modality" => "Exposure", "timeframe" => "4–6 weeks" },
+        { "description" => "Complete planned exposure (team casual lunch)", "modality" => "Exposure", "timeframe" => "next 1–2 sessions" },
+        { "description" => "Consolidate sleep gains", "modality" => "CBT-I (intro)", "timeframe" => "ongoing" }
+      ],
+      "interventions" => [
+        { "name" => "Continued cognitive work", "modality" => "CBT", "description" => "Thought records for anticipatory anxiety in groups" },
+        { "name" => "Group exposure hierarchy", "modality" => "CBT", "description" => "One intentional contribution per team meeting; log predictions vs. outcomes" },
+        { "name" => "Planned social exposure", "modality" => "CBT", "description" => "Prepare team Friday lunch as graded exposure (next session)" },
+        { "name" => "Relapse prevention", "modality" => "CBT", "description" => "Review early warning signs and skill menu (grounding, BA, thought records)" }
+      ],
+      "homework" => [
+        "Each team meeting: one comment or question; afterward jot what you predicted vs. what actually happened",
+        "Notice thoughts about the Friday team lunch without avoiding—bring notes next session"
+      ],
+      "strengths" => [
+        "Internalizing CBT principles (choosing approach over avoidance)",
+        "Behavioral activation and social attendance despite discomfort",
+        "Strong alliance and consistent engagement"
+      ],
+      "barriers" => [
+        "Anticipatory anxiety often exceeds in-the-moment difficulty—address with logged evidence"
+      ],
+      "diagnosis_considerations" => [
+        "Generalized Anxiety Disorder; panic symptoms in remission with skills; social anxiety features in group contexts"
+      ]
+    },
+    client_content: {
+      "what_we_talked_about" =>
+        "We celebrated solid progress: no new panic attacks, grounding worked before a code review and at a friend's birthday dinner, and you were honest with your manager about focusing on craft—which went better than you feared. Next we're targeting bigger meetings: small, planned contributions, and we'll shape the team lunch as a gentle exposure when you're ready.",
+      "your_goals" => [
+        "Keep using grounding when anxiety starts to climb",
+        "Speak up once per team meeting and compare worries to what really happened",
+        "Work toward joining the casual Friday lunch when we plan it together",
+        "Protect the sleep gains you've made"
+      ],
+      "things_to_try" => [
+        "One contribution per group meeting—aim for contact, not performance",
+        "Write a quick before/after note: feared outcome vs. actual outcome",
+        "Watch for 'anticipatory story' about the team lunch without acting on canceling yet"
+      ],
+      "your_strengths" => [
+        "You're applying skills in different settings, not just in session",
+        "You're testing old beliefs with new evidence",
+        "You're showing up for people and activities that matter"
+      ],
+      "next_steps" => ["Bring meeting notes and any thoughts about the Friday lunch to the next session"]
+    }
+  )
+
+  tplan.update!(current_version_id: tpv3.id)
+
   HomeworkItem.create!(
-    treatment_plan_version_id: tpv2.id,
+    treatment_plan_version_id: tpv3.id,
     client_id:                 alex_client.id,
     description:               "In each team meeting this week, make one contribution — a comment or question, even small. Not to impress, just to make contact. Write a brief note afterward about what actually happened (vs. what you feared).",
     completed:                 false
   )
 
   HomeworkItem.create!(
-    treatment_plan_version_id: tpv2.id,
+    treatment_plan_version_id: tpv3.id,
     client_id:                 alex_client.id,
     description:               "Think about attending the team Friday casual lunch — we'll discuss this as a planned exposure in the next session. No pressure to go yet, just start noticing your anticipatory thoughts about it.",
     completed:                 false
@@ -557,4 +669,338 @@ end
 
   therapist_id = i.even? ? therapist_profile.id : therapist_profile2.id
   Client.create!(user_id: cu.id, therapist_id: therapist_id, name: name)
+end
+
+# ─── Dummy treatment plans for secondary demo clients ─────────────────────────
+# Shapes match therapist PlanReview + client PlanView (JSONB). No sessions seeded.
+# Idempotent: one TreatmentPlan per client.
+dummy_plans = {
+  "jordan.kim@demo.health" => {
+    therapist: therapist_profile,
+    therapist_content: {
+      "presenting_concerns" => [
+        "First-time therapy; anticipatory anxiety about starting care",
+        "Stress related to new routines and 'getting it right' in work and relationships",
+        "Occasional sleep difficulty when anticipating next-day responsibilities"
+      ],
+      "goals" => [
+        { "description" => "Build comfort with the therapy process and a sustainable routine", "modality" => "Supportive / CBT-informed", "timeframe" => "4–6 weeks" },
+        { "description" => "Identify early worry patterns and one go-to coping step", "modality" => "CBT", "timeframe" => "6–8 weeks" },
+        { "description" => "Improve wind-down and sleep on high-demand nights", "modality" => "Sleep skills", "timeframe" => "ongoing" }
+      ],
+      "interventions" => [
+        { "name" => "Rapport and orientation", "modality" => "Supportive", "description" => "Clarify expectations, pace, and confidentiality" },
+        { "name" => "Psychoeducation", "modality" => "CBT-informed", "description" => "Anxiety as alarm system; gentle self-monitoring" },
+        { "name" => "Coping menu", "modality" => "CBT", "description" => "Breathing, grounding, and brief behavioral experiments" }
+      ],
+      "homework" => [
+        "Note one moment daily when anxiety showed up and what you did that helped even a little",
+        "Try a 5-minute wind-down routine before bed on two nights this week"
+      ],
+      "strengths" => [
+        "Motivated to engage despite nervousness",
+        "Clear communicator",
+        "Willing to ask questions about the process"
+      ],
+      "diagnosis_considerations" => [
+        "Adjustment with anxiety features (provisional); formal dx TBD after further assessment"
+      ]
+    },
+    client_content: {
+      "what_we_talked_about" =>
+        "We focused on what it feels like to start therapy and how anxiety can spike when you're trying new things. We picked small, realistic steps to notice worry and practice one calming habit.",
+      "your_goals" => [
+        "Feel less alone with worry as you get used to therapy",
+        "Catch one worry pattern early and respond with a skill you choose",
+        "Sleep a bit easier on busy nights"
+      ],
+      "things_to_try" => [
+        "One daily anxiety check-in (what showed up, what helped)",
+        "A short wind-down before bed twice this week"
+      ],
+      "your_strengths" => [
+        "You showed up—that matters",
+        "You're curious about how therapy works",
+        "You're honest about what feels hard"
+      ],
+      "next_steps" => ["Bring your notes to the next session"]
+    },
+    homework: [
+      "Daily: one line about anxiety + what helped (even 5%).",
+      "Two nights: 5-minute wind-down before bed."
+    ]
+  },
+  "maya.patel@demo.health" => {
+    therapist: therapist_profile2,
+    therapist_content: {
+      "presenting_concerns" => [
+        "Low mood, fatigue, and loss of interest persisting several weeks",
+        "Tension with partner about division of household labor",
+        "Guilt about 'not keeping up' at work and home"
+      ],
+      "goals" => [
+        { "description" => "Stabilize daily routine (sleep, meals, movement)", "modality" => "Behavioral activation", "timeframe" => "4 weeks" },
+        { "description" => "Improve communication with partner using structured dialogue", "modality" => "EFT-informed / communication skills", "timeframe" => "6–10 weeks" },
+        { "description" => "Reduce self-critical thoughts with thought balancing", "modality" => "CBT", "timeframe" => "8 weeks" }
+      ],
+      "interventions" => [
+        { "name" => "Behavioral activation", "modality" => "BA", "description" => "Small scheduled pleasant and mastery activities" },
+        { "name" => "Couples communication coaching", "modality" => "LMFT", "description" => "Speaker-listener technique; de-escalation cues" },
+        { "name" => "Cognitive restructuring", "modality" => "CBT", "description" => "Identify guilt cognitions and generate balanced alternatives" }
+      ],
+      "homework" => [
+        "Schedule two 20-minute activities that usually give even mild enjoyment",
+        "One structured conversation with partner using speaker-listener format",
+        "Log three self-critical thoughts and one balanced line for each"
+      ],
+      "strengths" => [
+        "Strong commitment to relationships",
+        "Insight into guilt and fairness themes",
+        "Follows through when tasks are concrete"
+      ],
+      "barriers" => [
+        "Low energy can shrink homework—keep steps very small"
+      ],
+      "diagnosis_considerations" => [
+        "Major Depressive Disorder, mild-moderate (provisional); relational stressors"
+      ]
+    },
+    client_content: {
+      "what_we_talked_about" =>
+        "We looked at how low mood and fatigue connect to feeling overloaded at home and at work. We planned tiny activities to rebuild momentum and a clearer way to talk with your partner so fights slow down.",
+      "your_goals" => [
+        "Feel a bit more energy in the week",
+        "Have one calmer conversation with your partner about chores",
+        "Be a little kinder to yourself when guilt shows up"
+      ],
+      "things_to_try" => [
+        "Two short activities you used to like—even if motivation is low",
+        "Speaker-listener practice once",
+        "Three guilt thoughts rewritten in a fairer voice"
+      ],
+      "your_strengths" => [
+        "You care deeply about doing right by people",
+        "You notice patterns in how you talk to yourself",
+        "You're willing to try structured tools"
+      ],
+      "next_steps" => ["Share how the activities and conversation felt next session"]
+    },
+    homework: [
+      "Two 20-minute pleasant/mastery activities.",
+      "One speaker-listener talk with partner.",
+      "Three guilt thoughts + balanced responses."
+    ]
+  },
+  "chris.wong@demo.health" => {
+    therapist: therapist_profile,
+    therapist_content: {
+      "presenting_concerns" => [
+        "Chronic work overload; difficulty disconnecting after hours",
+        "Irritability with coworkers; fear of disappointing the team",
+        "Headaches and muscle tension during high-deadline weeks"
+      ],
+      "goals" => [
+        { "description" => "Set clearer work boundaries without catastrophic fears", "modality" => "CBT", "timeframe" => "6 weeks" },
+        { "description" => "Reduce somatic stress cues via pacing and recovery", "modality" => "Behavioral / mindfulness intro", "timeframe" => "4–8 weeks" },
+        { "description" => "Repair working relationships with assertive communication", "modality" => "CBT / assertiveness", "timeframe" => "ongoing" }
+      ],
+      "interventions" => [
+        { "name" => "Values-clarification", "modality" => "ACT-informed", "description" => "Link boundaries to what matters long-term" },
+        { "name" => "Worry scheduling", "modality" => "CBT", "description" => "Contain rumination to a short daily window" },
+        { "name" => "Pacing and recovery", "modality" => "Behavioral", "description" => "Micro-breaks, sleep protection, basic movement" }
+      ],
+      "homework" => [
+        "Pick one boundary experiment (e.g., no email after 8pm) for three weeknights",
+        "10-minute walk or stretch block on four days",
+        "One assertive message to a teammate using DESC script (draft in session)"
+      ],
+      "strengths" => [
+        "High conscientiousness and team loyalty",
+        "Recognizes early that burnout pattern is unsustainable",
+        "Responds well to structured behavioral plans"
+      ],
+      "diagnosis_considerations" => [
+        "Occupational burnout / adjustment with anxiety features (provisional)"
+      ]
+    },
+    client_content: {
+      "what_we_talked_about" =>
+        "We mapped how always being 'on' at work feeds irritability and tension in your body. We chose one small boundary to test and a few recovery habits that don't depend on motivation.",
+      "your_goals" => [
+        "Turn off work brain a little earlier some nights",
+        "Move your body briefly most days",
+        "Say one clear request at work without over-apologizing"
+      ],
+      "things_to_try" => [
+        "Three nights: boundary experiment you picked",
+        "Four days: 10-minute walk or stretch",
+        "Draft one DESC message before sending"
+      ],
+      "your_strengths" => [
+        "You care about your team",
+        "You can spot the burnout pattern",
+        "You're willing to test small changes"
+      ],
+      "next_steps" => ["Note what felt scary vs. what actually happened with the boundary"]
+    },
+    homework: [
+      "Three nights: chosen work boundary.",
+      "Four days: 10-minute movement.",
+      "One DESC-style work message."
+    ]
+  },
+  "taylor.nguyen@demo.health" => {
+    therapist: therapist_profile2,
+    therapist_content: {
+      "presenting_concerns" => [
+        "Frequent conflict with a parent about career choices and independence",
+        "Feeling 'stuck in the middle' between family expectations and personal goals",
+        "Guilt when setting limits on calls and visits"
+      ],
+      "goals" => [
+        { "description" => "Clarify personal boundaries while preserving family connection", "modality" => "Family systems / communication", "timeframe" => "8–12 weeks" },
+        { "description" => "Reduce guilt-driven over-accommodation", "modality" => "CBT-informed", "timeframe" => "6–10 weeks" },
+        { "description" => "Increase support outside immediate family", "modality" => "Supportive", "timeframe" => "ongoing" }
+      ],
+      "interventions" => [
+        { "name" => "Genogram / roles map", "modality" => "Family systems", "description" => "Visualize expectations and alliances" },
+        { "name" => "Boundary scripts", "modality" => "Communication", "description" => "Short, respectful limit-setting lines" },
+        { "name" => "Guilt cognitions", "modality" => "CBT", "description" => "Test beliefs about responsibility and loyalty" }
+      ],
+      "homework" => [
+        "Write three boundaries you want (small, medium, large) and pick the smallest to practice",
+        "One conversation using a boundary script; note family response",
+        "Reach out to one non-family support (friend, peer group, hobby)"
+      ],
+      "strengths" => [
+        "Loyal and thoughtful about family impact",
+        "Clear values about autonomy",
+        "Humor and resilience under stress"
+      ],
+      "diagnosis_considerations" => [
+        "Relational distress; rule out anxiety/depression if mood symptoms worsen"
+      ]
+    },
+    client_content: {
+      "what_we_talked_about" =>
+        "We explored the push-pull between what your family expects and the life you want. We sorted boundaries into small steps and practiced wording that is firm but still caring.",
+      "your_goals" => [
+        "Say one small no (or not-now) without drowning in guilt",
+        "Stay connected to family without losing your own direction",
+        "Build support outside the family circle"
+      ],
+      "things_to_try" => [
+        "Pick the smallest boundary from your list",
+        "Use your script once and notice what happened",
+        "One check-in with a friend or community"
+      ],
+      "your_strengths" => [
+        "You love your family and still honor your own path",
+        "You're brave enough to talk about guilt out loud",
+        "You can laugh even when it's heavy"
+      ],
+      "next_steps" => ["Bring what worked and what felt messy from the boundary try"]
+    },
+    homework: [
+      "Practice smallest boundary once.",
+      "One support contact outside family."
+    ]
+  },
+  "sam.foster@demo.health" => {
+    therapist: therapist_profile,
+    therapist_content: {
+      "presenting_concerns" => [
+        "Hypervigilance in crowds and on transit; startle response",
+        "Avoidance of certain neighborhoods after an upsetting incident",
+        "Shame about 'overreacting' when reminded of the past"
+      ],
+      "goals" => [
+        { "description" => "Stabilize nervous system responses with grounding and pacing", "modality" => "Trauma-informed CBT", "timeframe" => "6–10 weeks" },
+        { "description" => "Gradually widen safe activities using a fear hierarchy", "modality" => "Exposure (collaborative)", "timeframe" => "8–12 weeks" },
+        { "description" => "Reduce shame narrative; build self-compassion", "modality" => "CFT-informed", "timeframe" => "ongoing" }
+      ],
+      "interventions" => [
+        { "name" => "Safety and stabilization", "modality" => "Trauma-informed", "description" => "Grounding, window of tolerance, no forced retelling" },
+        { "name" => "Graded exposure", "modality" => "CBT", "description" => "Hierarchy built together; client controls pace" },
+        { "name" => "Cognitive processing", "modality" => "CBT", "description" => "Update stuck beliefs about blame and weakness" }
+      ],
+      "homework" => [
+        "Daily: 3 minutes of grounding when anxiety is under a 5/10",
+        "One step on the hierarchy (pre-agreed) with post-exposure notes",
+        "Write one compassionate line you'd say to a friend, then read it to yourself"
+      ],
+      "strengths" => [
+        "Strong survival skills and awareness of triggers",
+        "Trust-building in therapeutic relationship",
+        "Commitment to moving at a safe pace"
+      ],
+      "barriers" => [
+        "Shame may spike after exposure—normalize and plan for debrief"
+      ],
+      "diagnosis_considerations" => [
+        "PTSD symptoms (provisional); formal assessment ongoing"
+      ]
+    },
+    client_content: {
+      "what_we_talked_about" =>
+        "We focused on helping your body feel safer day to day without pushing you to relive hard memories. You chose a tiny step toward places you've been avoiding, at a speed that respects your limits.",
+      "your_goals" => [
+        "Feel less on-edge in ordinary public situations",
+        "Take one small step toward a place you've been avoiding",
+        "Replace shame thoughts with something fairer"
+      ],
+      "things_to_try" => [
+        "Short daily grounding when anxiety is mild",
+        "One hierarchy step we agreed on",
+        "One self-compassion line borrowed from how you'd support a friend"
+      ],
+      "your_strengths" => [
+        "You know your limits—that's wisdom",
+        "You keep showing up even when it's scary",
+        "You're building trust step by step"
+      ],
+      "next_steps" => ["Share how the hierarchy step felt (body + thoughts) next time"]
+    },
+    homework: [
+      "Daily grounding when calm enough.",
+      "One agreed hierarchy step + notes.",
+      "One compassion line for yourself."
+    ]
+  }
+}.freeze
+
+dummy_plans.each do |email, spec|
+  user = User.find_by(email: email)
+  next unless user
+
+  client = Client.find_by(user_id: user.id)
+  next unless client
+  next if TreatmentPlan.exists?(client_id: client.id)
+
+  tp = TreatmentPlan.create!(
+    client_id:    client.id,
+    therapist_id: spec[:therapist].id,
+    status:       "draft"
+  )
+
+  tpv = TreatmentPlanVersion.create!(
+    treatment_plan_id: tp.id,
+    version_number:    1,
+    session_id:        nil,
+    source:            "ai_generated",
+    change_summary:    "Demo treatment plan (seed data; not generated from a transcript).",
+    therapist_content: spec[:therapist_content],
+    client_content:    spec[:client_content]
+  )
+
+  tp.update!(current_version_id: tpv.id)
+
+  spec[:homework].each do |desc|
+    HomeworkItem.create!(
+      treatment_plan_version_id: tpv.id,
+      client_id:                 client.id,
+      description:               desc,
+      completed:                 false
+    )
+  end
 end

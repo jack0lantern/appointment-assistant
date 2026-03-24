@@ -30,10 +30,84 @@ export default function PlanReview() {
   const { data, isLoading, error } = useQuery<PlanReviewData>({
     queryKey: ['treatment-plan', clientId],
     queryFn: async () => {
-      const { data } = await api.get<PlanReviewData>(
-        `/api/clients/${clientId}/treatment-plan`,
-      )
-      return data
+      // #region agent log
+      fetch('http://127.0.0.1:7257/ingest/e733306d-eb49-4862-a616-3c2c4748159b', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3b6b0a' },
+        body: JSON.stringify({
+          sessionId: '3b6b0a',
+          location: 'PlanReview.tsx:queryFn:start',
+          message: 'treatment plan fetch start',
+          data: { clientId: clientId ?? 'undefined', urlPath: `/api/clients/${clientId}` },
+          timestamp: Date.now(),
+          hypothesisId: 'H3',
+        }),
+      }).catch(() => {})
+      // #endregion
+      try {
+        const { data: payload } = await api.get<{
+          treatment_plan: TreatmentPlan | null
+          safety_flags: SafetyFlag[]
+        }>(`/api/clients/${clientId}`)
+        // #region agent log
+        fetch('http://127.0.0.1:7257/ingest/e733306d-eb49-4862-a616-3c2c4748159b', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3b6b0a' },
+          body: JSON.stringify({
+            sessionId: '3b6b0a',
+            location: 'PlanReview.tsx:queryFn:response',
+            message: 'treatment plan fetch response',
+            data: {
+              hasTreatmentPlan: payload.treatment_plan != null,
+              payloadTopKeys: Object.keys(payload ?? {}),
+            },
+            timestamp: Date.now(),
+            hypothesisId: 'H1',
+          }),
+        }).catch(() => {})
+        // #endregion
+        if (!payload.treatment_plan) {
+          // #region agent log
+          fetch('http://127.0.0.1:7257/ingest/e733306d-eb49-4862-a616-3c2c4748159b', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3b6b0a' },
+            body: JSON.stringify({
+              sessionId: '3b6b0a',
+              location: 'PlanReview.tsx:queryFn:nullPlan',
+              message: 'treatment_plan missing in payload',
+              data: {},
+              timestamp: Date.now(),
+              hypothesisId: 'H1',
+            }),
+          }).catch(() => {})
+          // #endregion
+          throw new Error('No treatment plan for this client')
+        }
+        return {
+          treatment_plan: payload.treatment_plan,
+          safety_flags: payload.safety_flags ?? [],
+        }
+      } catch (e: unknown) {
+        // #region agent log
+        const ax = e as { response?: { status?: number }; message?: string }
+        fetch('http://127.0.0.1:7257/ingest/e733306d-eb49-4862-a616-3c2c4748159b', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3b6b0a' },
+          body: JSON.stringify({
+            sessionId: '3b6b0a',
+            location: 'PlanReview.tsx:queryFn:catch',
+            message: 'treatment plan fetch failed',
+            data: {
+              httpStatus: ax.response?.status ?? null,
+              errType: e != null && typeof e === 'object' && 'name' in e ? String((e as Error).name) : typeof e,
+            },
+            timestamp: Date.now(),
+            hypothesisId: 'H2',
+          }),
+        }).catch(() => {})
+        // #endregion
+        throw e
+      }
     },
     enabled: !!clientId,
   })
@@ -101,6 +175,25 @@ export default function PlanReview() {
   }
 
   if (error || !data) {
+    // #region agent log
+    fetch('http://127.0.0.1:7257/ingest/e733306d-eb49-4862-a616-3c2c4748159b', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3b6b0a' },
+      body: JSON.stringify({
+        sessionId: '3b6b0a',
+        location: 'PlanReview.tsx:errorUI',
+        message: 'render error state',
+        data: {
+          hasError: !!error,
+          hasData: !!data,
+          queryEnabled: !!clientId,
+          clientId: clientId ?? 'undefined',
+        },
+        timestamp: Date.now(),
+        hypothesisId: 'H5',
+      }),
+    }).catch(() => {})
+    // #endregion
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
         <p className="text-sm text-red-700">Failed to load treatment plan. Please try again.</p>
@@ -111,7 +204,7 @@ export default function PlanReview() {
     )
   }
 
-  const { treatment_plan, safety_flags } = data
+  const { treatment_plan, safety_flags = [] } = data
   const version = treatment_plan.current_version
   const tc = version?.therapist_content
   const unacknowledgedFlags = safety_flags.filter((f) => !f.acknowledged)

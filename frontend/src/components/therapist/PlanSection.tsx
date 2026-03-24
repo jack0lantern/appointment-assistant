@@ -13,7 +13,7 @@ type SectionItem = string | GoalItem | InterventionItem
 
 interface PlanSectionProps {
   title: string
-  items: SectionItem[]
+  items?: SectionItem[] | null
   citations?: Citation[]
   onSave: (updated: string) => void
   isSaving: boolean
@@ -42,12 +42,13 @@ function itemsToText(items: SectionItem[]): string {
 
 export default function PlanSection({
   title,
-  items,
+  items: itemsProp,
   citations = [],
   onSave,
   isSaving,
   onShowCitations,
 }: PlanSectionProps) {
+  const items = itemsProp ?? []
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState('')
 
