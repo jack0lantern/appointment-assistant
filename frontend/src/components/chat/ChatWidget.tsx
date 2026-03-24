@@ -5,7 +5,6 @@ import { useChat } from '@/hooks/useChat'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import QuickActions from './QuickActions'
-import OnboardingProgress from './OnboardingProgress'
 import DocumentUpload from './DocumentUpload'
 import type { AgentContextType, SuggestedAction } from '@/types/agent'
 
@@ -114,9 +113,6 @@ export default function ChatWidget({ contextType = 'general', pageContext, initi
               </Button>
             </div>
           </div>
-
-          {/* Onboarding progress indicator - hidden for now */}
-          {false && onboardingState && <OnboardingProgress state={onboardingState} />}
 
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
