@@ -34,37 +34,11 @@ export async function consumeSSE(
     headers.Authorization = `Bearer ${token}`
   }
 
-  let response: Response
-  try {
-    response = await fetch(url, {
-      method,
-      headers,
-      signal,
-    })
-  } catch (fetchErr) {
-    // #region agent log
-    fetch(
-      'http://127.0.0.1:7576/ingest/e725d10a-c411-49a0-8c32-614a03cd0fd3',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'f30bcc' },
-        body: JSON.stringify({
-          sessionId: 'f30bcc',
-          location: 'lib/sse.ts:fetch',
-          message: 'SSE fetch failed (network error)',
-          data: {
-            url,
-            path,
-            baseURL,
-            errMessage: fetchErr instanceof Error ? fetchErr.message : String(fetchErr),
-          },
-          timestamp: Date.now(),
-        }),
-      }
-    ).catch(() => {})
-    // #endregion
-    throw fetchErr
-  }
+  const response = await fetch(url, {
+    method,
+    headers,
+    signal,
+  })
 
   if (!response.ok) {
     const err = new Error(`SSE request failed: ${response.status} ${response.statusText}`)
