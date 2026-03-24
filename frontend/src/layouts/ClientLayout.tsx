@@ -19,7 +19,13 @@ export default function ClientLayout() {
     }
   }, [user, navigate])
 
-  if (!user) return null
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-teal-50 to-white text-sm text-slate-500">
+        Loading session…
+      </div>
+    )
+  }
 
   const handleLogout = () => {
     logout()

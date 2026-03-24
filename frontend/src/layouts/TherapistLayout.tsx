@@ -10,6 +10,19 @@ export default function TherapistLayout() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7257/ingest/e733306d-eb49-4862-a616-3c2c4748159b', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '7850df' },
+      body: JSON.stringify({
+        sessionId: '7850df',
+        location: 'TherapistLayout.tsx:effect',
+        message: 'layout auth state',
+        data: { hypothesisId: 'H1', hasUser: !!user, role: user?.role },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
     if (!user) {
       navigate('/login/therapist', { replace: true })
       return
@@ -19,7 +32,13 @@ export default function TherapistLayout() {
     }
   }, [user, navigate])
 
-  if (!user) return null
+  if (!user) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 text-sm text-slate-500">
+        Loading session…
+      </div>
+    )
+  }
 
   const handleLogout = () => {
     logout()
