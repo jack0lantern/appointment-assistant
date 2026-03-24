@@ -17,6 +17,13 @@ RSpec.describe User, type: :model do
     it { should have_many(:conversations).dependent(:destroy) }
   end
 
+  describe "password storage" do
+    it "uses password_digest column for has_secure_password (not legacy password_hash)" do
+      expect(User.column_names).to include("password_digest")
+      expect(User.column_names).not_to include("password_hash")
+    end
+  end
+
   describe "secure password" do
     it "authenticates with correct password" do
       user = create(:user, password: "secret123")
