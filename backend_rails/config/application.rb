@@ -18,6 +18,8 @@ require "action_view/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+require_relative "../lib/middleware/spa_index_cache_control"
+
 module BackendRails
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
@@ -40,5 +42,8 @@ module BackendRails
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+
+    # After Static serves public/index.html for GET /, force revalidation so deploys pick up new chunk hashes.
+    config.middleware.insert_after ActionDispatch::Static, SpaIndexCacheControl
   end
 end

@@ -48,17 +48,20 @@ class AuthController < ApplicationController
   end
 
   def client_onboarding_info(user)
+    demo_new_patient = user.email == OnboardingRouter::DEMO_NEW_PATIENT_EMAIL
     # Demo new-patient user always needs onboarding
-    needs = user.email == OnboardingRouter::DEMO_NEW_PATIENT_EMAIL
+    needs = demo_new_patient
 
     # Users without a client profile need onboarding
     needs ||= user.client_profile.nil?
 
     return nil unless needs
 
-    # Find the therapist slug to redirect to
     client = user.client_profile
     slug = client&.therapist&.slug
+    # Referral flow: frontend stores slug in localStorage when user opens /onboard/:slug
+    # before login. Do not infer a therapist from seed/demo client rows for the demo patient.
+    slug = nil if demo_new_patient
 
     { needs_onboarding: true, onboard_slug: slug }.compact
   end

@@ -50,14 +50,10 @@ module Api
         .or(SafetyFlag.where(treatment_plan_version_id: version_ids))
 
       treatment_plan_hash = if plan
-        begin
-          base = TreatmentPlanBlueprint.render_as_hash(plan)
-          base["current_version"] = plan.current_version ? TreatmentPlanVersionBlueprint.render_as_hash(plan.current_version) : nil
-          base["versions"] = plan.versions.map { |v| TreatmentPlanVersionBlueprint.render_as_hash(v) }
-          base
-        rescue StandardError
-          raise
-        end
+        base = TreatmentPlanBlueprint.render_as_hash(plan)
+        base["current_version"] = plan.current_version ? TreatmentPlanVersionBlueprint.render_as_hash(plan.current_version) : nil
+        base["versions"] = plan.versions.map { |v| TreatmentPlanVersionBlueprint.render_as_hash(v) }
+        base
       end
 
       render json: {

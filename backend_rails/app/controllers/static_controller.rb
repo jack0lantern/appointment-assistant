@@ -4,7 +4,10 @@ class StaticController < ActionController::API
   def index
     index_path = Rails.public_path.join("index.html")
     if index_path.exist?
-      send_file index_path, type: "text/html", disposition: "inline"
+      send_file index_path,
+        type: "text/html",
+        disposition: "inline",
+        headers: { "Cache-Control" => "no-cache, must-revalidate" }
     else
       head :not_found
     end

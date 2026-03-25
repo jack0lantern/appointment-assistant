@@ -48,7 +48,7 @@ RSpec.describe "Auth", type: :request do
       expect(response).to have_http_status(:ok)
       json = response.parsed_body
       expect(json["needs_onboarding"]).to be true
-      expect(json["onboard_slug"]).to eq("dr-test")
+      expect(json).not_to have_key("onboard_slug")
     end
 
     it "returns needs_onboarding for user without client profile" do

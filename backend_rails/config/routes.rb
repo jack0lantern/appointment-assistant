@@ -46,9 +46,14 @@ Rails.application.routes.draw do
     get "evaluation/results" => "evaluations#results"
   end
 
-  # SPA fallback: serve index.html for non-API paths (Docker deployment)
+  # SPA fallback: serve index.html for non-API paths (Docker deployment).
+  # Exclude /assets/ so missing Vite chunks return real 404s instead of index.html (which breaks dynamic import()).
   root to: "static#index"
   get "*path", to: "static#index", constraints: ->(req) {
-    !req.path.start_with?("/api") && !req.path.start_with?("/health") && !req.path.start_with?("/up")
+    p = req.path
+    !p.start_with?("/api") &&
+      !p.start_with?("/health") &&
+      !p.start_with?("/up") &&
+      !p.start_with?("/assets/")
   }
 end
