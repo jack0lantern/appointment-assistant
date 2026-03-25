@@ -13,7 +13,18 @@ module Api
       end
 
       clients = therapist.clients
-      render json: ClientBlueprint.render_as_hash(clients)
+      ids = clients.pluck(:id)
+      session_stats = {}
+      if ids.any?
+        Session
+          .where(client_id: ids, status: "completed")
+          .group(:client_id)
+          .pluck(:client_id, Arel.sql("COUNT(*)"), Arel.sql("MAX(sessions.session_date)"))
+          .each do |client_id, cnt, max_dt|
+            session_stats[client_id] = { session_count: cnt.to_i, last_session_date: max_dt }
+          end
+      end
+      render json: ClientBlueprint.render_as_hash(clients, session_stats: session_stats)
     end
 
     # GET /api/clients/:id

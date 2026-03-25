@@ -3,6 +3,52 @@
 require "rails_helper"
 
 RSpec.describe "Clients API", type: :request do
+  describe "GET /api/clients" do
+    it "requires authentication" do
+      get "/api/clients"
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    context "with authenticated therapist" do
+      let(:therapist) { create(:therapist) }
+      let(:user) { therapist.user }
+      let(:headers) { auth_headers_for(user) }
+
+      it "includes session_count and last_session_date from completed sessions" do
+        client = create(:client, therapist: therapist, name: "Alex Rivera")
+        older = 2.days.ago.change(usec: 0)
+        newer = 1.day.ago.change(usec: 0)
+        create(:session, therapist: therapist, client: client, session_number: 1, session_date: older, status: "completed")
+        create(:session, therapist: therapist, client: client, session_number: 2, session_date: newer, status: "completed")
+        create(:session, :scheduled, therapist: therapist, client: client, session_number: 3)
+
+        get "/api/clients", headers: headers
+
+        expect(response).to have_http_status(:ok)
+        json = response.parsed_body
+        expect(json).to be_an(Array)
+        row = json.find { |c| c["id"] == client.id }
+        expect(row).to be_present
+        expect(row["session_count"]).to eq(2)
+        expect(Time.zone.parse(row["last_session_date"])).to eq(newer)
+      end
+
+      it "returns zero sessions and nil last date when only scheduled sessions exist" do
+        client = create(:client, therapist: therapist)
+        create(:session, :scheduled, therapist: therapist, client: client, session_number: 1)
+
+        get "/api/clients", headers: headers
+
+        expect(response).to have_http_status(:ok)
+        json = response.parsed_body
+        row = json.find { |c| c["id"] == client.id }
+        expect(row["session_count"]).to eq(0)
+        expect(row["last_session_date"]).to be_nil
+      end
+    end
+  end
+
   describe "GET /api/clients/:id" do
     it "requires authentication" do
       get "/api/clients/1"
@@ -29,6 +75,8 @@ RSpec.describe "Clients API", type: :request do
         expect(json["client"]).to be_present
         expect(json["client"]["id"]).to eq(client.id)
         expect(json["client"]["name"]).to eq("Jane Doe")
+        expect(json["client"]["session_count"]).to eq(1)
+        expect(json["client"]["last_session_date"]).to be_present
         expect(json["sessions"]).to be_an(Array)
         expect(json["sessions"].length).to eq(1)
         expect(json["treatment_plan"]).to be_present
