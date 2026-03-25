@@ -18,6 +18,9 @@ eggs/
 lib/
 !frontend/src/lib/
 !frontend/src/lib/**
+# Rails app code lives in backend_rails/lib/ (middleware, tasks); do not treat like Python lib/
+!backend_rails/lib/
+!backend_rails/lib/**
 lib64/
 parts/
 sdist/
