@@ -52,18 +52,20 @@ export default function Dashboard() {
     <div className="space-y-6">
       <WelcomeCard name={user?.name ?? 'there'} />
 
-      {/* Privacy disclaimer */}
-      <Card className="border-teal-100 bg-teal-50/50 shadow-none">
-        <CardContent className="flex items-start gap-3 py-4">
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-600 text-xs">
-            i
-          </span>
-          <p className="text-sm leading-relaxed text-teal-800">
-            This plan was created by your therapist with AI assistance. If you have questions,
-            please bring them up in your next session.
-          </p>
-        </CardContent>
-      </Card>
+      {/* AI plan disclaimer — only when a plan has been shared */}
+      {!planLoading && plan?.current_version && (
+        <Card className="border-teal-100 bg-teal-50/50 shadow-none">
+          <CardContent className="flex items-start gap-3 py-4">
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-600 text-xs">
+              i
+            </span>
+            <p className="text-sm leading-relaxed text-teal-800">
+              This plan was created by your therapist with AI assistance. If you have questions,
+              please bring them up in your next session.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Upcoming Appointments */}
       {upcomingAppointments.length > 0 && (
