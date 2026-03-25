@@ -47,7 +47,6 @@ export default function HomeworkItem({ item, onToggle, isUpdating }: HomeworkIte
   const checkboxSlot = isLocked ? (
     <Tooltip>
       <TooltipTrigger
-        nativeButton={false}
         render={(props) => (
           <span
             {...props}

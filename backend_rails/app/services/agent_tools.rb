@@ -370,7 +370,9 @@ class AgentTools
       # If user is the demo new-patient, always require onboarding
       if user.email == OnboardingRouter::DEMO_NEW_PATIENT_EMAIL
         progress = conversation&.onboarding || OnboardingProgress.new
-        return onboarding_incomplete_error(missing_step(progress)) unless progress.docs_verified
+        unless progress.docs_verified
+          return onboarding_incomplete_error(missing_step(progress))
+        end
       end
 
       # If there's an active onboarding conversation, enforce step completion

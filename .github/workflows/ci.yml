@@ -42,6 +42,29 @@ jobs:
       - name: Lint code for consistent style
         run: bin/rubocop -f github
 
+  # Fails fast on TypeScript / Vite errors before Docker (same as Dockerfile frontend stage).
+  frontend_build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Typecheck and production build
+        run: npm run build
+
   test:
     runs-on: ubuntu-latest
     services:

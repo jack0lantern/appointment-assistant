@@ -10,6 +10,9 @@ Rails.application.routes.draw do
     get "clients" => "clients#index"
     post "clients" => "clients#create"
     get "clients/:id" => "clients#show"
+    post "clients/:client_id/sessions/live" => "live_sessions#create"
+    post "sessions/:session_id/live/token" => "live_sessions#token"
+    post "sessions/:session_id/live/end" => "live_sessions#end_session"
 
     get "therapist/appointments" => "therapist_appointments#index"
     get "my/appointments" => "client_appointments#index"

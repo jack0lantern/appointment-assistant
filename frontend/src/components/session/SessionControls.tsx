@@ -95,17 +95,15 @@ export default function SessionControls({
         </Button>
       )}
 
-      {/* End session (therapist only) */}
-      {isTherapist && (
-        <Button
-          variant="destructive"
-          size="lg"
-          onClick={onEndSession}
-          className="ml-4 h-12 rounded-full px-6"
-        >
-          End Session
-        </Button>
-      )}
+      {/* End session */}
+      <Button
+        variant="destructive"
+        size="lg"
+        onClick={onEndSession}
+        className="ml-4 h-12 rounded-full px-6"
+      >
+        End Session
+      </Button>
     </div>
   )
 }

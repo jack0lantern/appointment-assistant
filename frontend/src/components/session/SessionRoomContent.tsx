@@ -131,6 +131,8 @@ export default function SessionRoomContent({
         } else {
           navigate(`/therapist/clients/${clientId}`)
         }
+      } else {
+        navigate('/client/dashboard')
       }
     },
   })
