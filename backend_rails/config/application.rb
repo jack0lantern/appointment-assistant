@@ -18,7 +18,7 @@ require "action_view/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
-require_relative "../lib/middleware/spa_index_cache_control"
+require_relative "../lib/spa_index_cache_control"
 
 module BackendRails
   class Application < Rails::Application
@@ -43,7 +43,7 @@ module BackendRails
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
-    # After Static serves public/index.html for GET /, force revalidation so deploys pick up new chunk hashes.
-    config.middleware.insert_after ActionDispatch::Static, SpaIndexCacheControl
+    # Wrap Static so responses for GET / (index.html) still pass through here; Static returns without calling downstream when a file hits.
+    config.middleware.insert_before ActionDispatch::Static, SpaIndexCacheControl
   end
 end

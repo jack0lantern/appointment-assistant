@@ -36,6 +36,7 @@ Rails.application.routes.draw do
     post "agent/documents/upload" => "documents#upload"
 
     get "onboard/:slug" => "onboard#show"
+    post "onboard/:slug/reset" => "onboard#reset"
 
     # Evaluation (SSE streaming)
     post "evaluation/run" => "evaluations#run"
