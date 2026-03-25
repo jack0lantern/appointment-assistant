@@ -8,7 +8,9 @@ import ChatInput from '@/components/chat/ChatInput'
 import QuickActions from '@/components/chat/QuickActions'
 import DocumentUpload from '@/components/chat/DocumentUpload'
 import OnboardingProgress from '@/components/chat/OnboardingProgress'
-import { Heart, Shield, Phone } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useAuth } from '@/context/AuthContext'
+import { Heart, Shield, Phone, RotateCcw } from 'lucide-react'
 import type { SuggestedAction } from '@/types/agent'
 
 interface OnboardResponse {
@@ -27,9 +29,12 @@ const ONBOARDING_INITIAL_ACTIONS: SuggestedAction[] = [
 export default function Onboard() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
+  const { logout } = useAuth()
   const [data, setData] = useState<OnboardResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [resetBusy, setResetBusy] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -63,7 +68,7 @@ export default function Onboard() {
 
   const {
     messages, isLoading: chatLoading, error: chatError,
-    suggestedActions, onboardingState, sendMessage, uploadDocument,
+    suggestedActions, onboardingState, sendMessage, uploadDocument, clearChat,
   } = useChat({
     contextType: 'onboarding',
     initialConversationId: data?.conversation_id,
@@ -85,6 +90,33 @@ export default function Onboard() {
 
   const handleSelectAppointment = (cancelPayload: string) => {
     sendMessage(cancelPayload)
+  }
+
+  const handleResetOnboarding = async () => {
+    if (!slug || resetBusy) return
+    if (
+      !window.confirm(
+        'Clear your progress and start onboarding from the beginning? Your chat history on this device will be cleared.'
+      )
+    ) {
+      return
+    }
+    setResetError(null)
+    setResetBusy(true)
+    try {
+      const { data: refreshed } = await api.post<OnboardResponse>(`/api/onboard/${slug}/reset`)
+      clearChat()
+      setData(refreshed)
+    } catch {
+      setResetError('Could not reset onboarding. Please try again.')
+    } finally {
+      setResetBusy(false)
+    }
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login/client')
   }
 
   if (loading) {
@@ -137,12 +169,33 @@ export default function Onboard() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            <Shield className="h-3.5 w-3.5" />
-            <span>Private & Secure</span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleResetOnboarding}
+              disabled={resetBusy || chatLoading}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 disabled:pointer-events-none disabled:opacity-50"
+              aria-label="Start onboarding over"
+            >
+              <RotateCcw className="h-3.5 w-3.5 shrink-0" />
+              Start over
+            </button>
+            <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleLogout}>
+              Logout
+            </Button>
+            <div className="hidden items-center gap-1.5 text-xs text-slate-400 sm:flex">
+              <Shield className="h-3.5 w-3.5" />
+              <span>Private & Secure</span>
+            </div>
           </div>
         </div>
       </header>
+
+      {resetError && (
+        <div className="shrink-0 border-b border-red-100 bg-red-50 px-4 py-2 text-center text-xs text-red-700">
+          {resetError}
+        </div>
+      )}
 
       {/* Onboarding Progress */}
       {onboardingState && onboardingState.step !== 'complete' && (

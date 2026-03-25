@@ -305,10 +305,10 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     if (persistKey) clearChatStorage(persistKey)
     setMessages([])
     setSuggestedActions([])
-    setOnboardingState(null)
+    setOnboardingState(defaultOnboardingState({ contextType: options.contextType }))
     conversationIdRef.current = null
     setError(null)
-  }, [persistKey])
+  }, [persistKey, options.contextType])
 
   return {
     messages,
