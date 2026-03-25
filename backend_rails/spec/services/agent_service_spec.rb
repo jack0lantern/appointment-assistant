@@ -115,6 +115,29 @@ RSpec.describe AgentService do
           context_type: "general"
         )
       end
+
+      it "truncates oldest history when the thread exceeds the configured message cap" do
+        stub_const("ChatHistoryTruncator::DEFAULT_MAX_MESSAGES", 4)
+
+        conversation = create(:conversation, user: user)
+        5.times do |i|
+          conversation.messages.create!(role: "user", content: "u#{i}")
+          conversation.messages.create!(role: "assistant", content: "a#{i}")
+        end
+
+        expect(mock_llm).to receive(:call) do |args|
+          expect(args[:messages].length).to eq(5)
+          expect(args[:messages].map { |m| m[:content] }).to eq(["u3", "a3", "u4", "a4", "What is new?"])
+          { "content" => [{ "type" => "text", "text" => "Reply." }] }
+        end
+
+        service.process_message(
+          message: "What is new?",
+          user: user,
+          conversation_id: conversation.uuid,
+          context_type: "general"
+        )
+      end
     end
 
     context "intent classification integration" do

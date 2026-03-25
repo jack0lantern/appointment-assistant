@@ -7,7 +7,7 @@ gem "bcrypt", "~> 3.1.7"
 gem "jwt"
 gem "rack-cors"
 gem "blueprinter"
-gem "anthropic", "~> 0.3"
+gem "ruby-anthropic", "~> 0.4", ">= 0.4.2"
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", require: false
 

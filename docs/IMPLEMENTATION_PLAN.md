@@ -170,7 +170,7 @@ The backend has been fully migrated to Rails. The `credal-agent` branch can be u
   - persist `risk_level` on the conversation / onboarding state each turn
   - short-circuit crisis responses without LLM calls
   - block normal assistant replies for `paused` conversations
-- `POST /api/agent/chat` endpoint
+- `POST /api/agent/chat` endpoint (per-message length and related caps: `docs/CHAT_LIMITS.md`)
 - `GET /api/agent/scheduling/availability`, `POST /api/agent/scheduling/book`, `POST /api/agent/scheduling/cancel`
 
 **Tests (RSpec, RED first — ported from existing pytest):**

@@ -26,6 +26,33 @@ RSpec.describe "Agent Chat", type: :request do
         expect(response).to have_http_status(:unprocessable_entity)
       end
 
+      it "rejects message over max length and instructs starting a new chat" do
+        max = Api::AgentController::MAX_CHAT_MESSAGE_CHARS
+        body = "a" * (max + 1)
+
+        post "/api/agent/chat", params: { message: body }, headers: headers, as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        json = JSON.parse(response.body)
+        expect(json["error"]).to be_present
+        expect(json["error"].downcase).to include("new chat")
+      end
+
+      it "accepts message at exactly max length" do
+        mock_llm = instance_double(LlmService)
+        allow(LlmService).to receive(:new).and_return(mock_llm)
+        allow(mock_llm).to receive(:call).and_return(
+          "content" => [{ "type" => "text", "text" => "OK" }]
+        )
+
+        max = Api::AgentController::MAX_CHAT_MESSAGE_CHARS
+        body = "a" * max
+
+        post "/api/agent/chat", params: { message: body }, headers: headers, as: :json
+
+        expect(response).to have_http_status(:ok)
+      end
+
       it "returns expected response shape" do
         mock_llm = instance_double(LlmService)
         allow(LlmService).to receive(:new).and_return(mock_llm)

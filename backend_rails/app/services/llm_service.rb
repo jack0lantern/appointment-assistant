@@ -4,6 +4,7 @@
 # Wraps the Anthropic SDK to send messages with tool definitions.
 class LlmService
   MODEL = "claude-haiku-4-5-20251001"
+  # Output cap per API call — see docs/CHAT_LIMITS.md (not the same as user message length).
   DEFAULT_MAX_TOKENS = 1024
 
   # Allow injecting a client for testing.

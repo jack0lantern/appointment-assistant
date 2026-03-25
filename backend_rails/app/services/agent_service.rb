@@ -146,8 +146,8 @@ class AgentService
     redaction_result = @redactor.redact(message)
     redacted_message = redaction_result.redacted_text
 
-    # 6. Load conversation history
-    history = load_history(conversation)
+    # 6. Load conversation history (truncate oldest turns to avoid LLM context overflow)
+    history = ChatHistoryTruncator.truncate(load_history(conversation))
 
     # 7. Build context (system prompt + messages)
     ctx = ContextBuilder.build(

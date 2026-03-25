@@ -48,6 +48,8 @@ AI-powered mental health onboarding and treatment assistant. Helps clients with 
                                 └──────────────────────────────┘
 ```
 
+**Chat limits** (per-message cap, LLM output cap, context vs. history): see [`docs/CHAT_LIMITS.md`](docs/CHAT_LIMITS.md).
+
 ---
 
 ## Quick Start

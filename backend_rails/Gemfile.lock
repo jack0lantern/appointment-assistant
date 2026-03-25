@@ -76,10 +76,6 @@ GEM
       tzinfo (~> 2.0, >= 2.0.5)
     addressable (2.8.9)
       public_suffix (>= 2.0.2, < 8.0)
-    anthropic (0.4.1)
-      event_stream_parser (>= 0.3.0, < 2.0.0)
-      faraday (>= 1)
-      faraday-multipart (>= 1)
     ast (2.4.3)
     base64 (0.3.0)
     bcrypt (3.1.22)
@@ -311,6 +307,10 @@ GEM
       rubocop (>= 1.72)
       rubocop-performance (>= 1.24)
       rubocop-rails (>= 2.30)
+    ruby-anthropic (0.4.2)
+      event_stream_parser (>= 0.3.0, < 2.0.0)
+      faraday (>= 1)
+      faraday-multipart (>= 1)
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
     shoulda-matchers (7.0.1)
@@ -345,7 +345,6 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
-  anthropic (~> 0.3)
   bcrypt (~> 3.1.7)
   blueprinter
   bootsnap
@@ -362,6 +361,7 @@ DEPENDENCIES
   rails (~> 7.2.3)
   rspec-rails (~> 7.0)
   rubocop-rails-omakase
+  ruby-anthropic (~> 0.4, >= 0.4.2)
   shoulda-matchers
   tzinfo-data
 

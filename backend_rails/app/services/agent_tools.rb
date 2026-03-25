@@ -357,11 +357,12 @@ class AgentTools
     def onboarding_guard(auth_context)
       return nil unless auth_context.role == "client"
 
+      # No client profile → must onboard first (check before user lookup so bogus/missing
+      # user_id still returns a structured error for scheduling tools)
+      return onboarding_incomplete_error("intake") if auth_context.client_id.nil?
+
       user = User.find_by(id: auth_context.user_id)
       return nil unless user
-
-      # No client profile → must onboard first
-      return onboarding_incomplete_error("intake") if auth_context.client_id.nil?
 
       # Check active onboarding conversation for progress (most recent)
       conversation = user.conversations.where(context_type: "onboarding", status: "active").order(created_at: :desc).first

@@ -1,6 +1,7 @@
 import { useState, useRef, type KeyboardEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { SendHorizonal, Paperclip, FileText, X, Loader2 } from 'lucide-react'
+import { MAX_CHAT_MESSAGE_CHARS } from '@/lib/chatLimits'
 
 const ACCEPTED_FILE_TYPES = '.jpg,.jpeg,.png,.pdf,.gif'
 
@@ -135,6 +136,7 @@ export default function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isDisabled}
+          maxLength={MAX_CHAT_MESSAGE_CHARS}
           rows={1}
           className="flex-1 resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm
                      placeholder:text-slate-400 focus:border-teal-400 focus:outline-none focus:ring-1 focus:ring-teal-400

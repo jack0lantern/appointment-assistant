@@ -7,6 +7,7 @@ import {
   readChatStorage,
   writeChatStorage,
 } from '@/lib/chatStorage'
+import { MAX_CHAT_MESSAGE_CHARS, chatMessageLengthExceededError } from '@/lib/chatLimits'
 import type {
   AgentChatRequest,
   AgentChatResponse,
@@ -155,6 +156,10 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     async (text: string) => {
       const trimmed = text.trim()
       if (!trimmed) return
+      if (trimmed.length > MAX_CHAT_MESSAGE_CHARS) {
+        setError(chatMessageLengthExceededError())
+        return
+      }
 
       const userMsg: ChatMessage = {
         role: 'user',
