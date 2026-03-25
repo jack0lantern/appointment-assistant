@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '@/api/client'
 import { useChat } from '@/hooks/useChat'
+import { CHAT_STORAGE_VERSION } from '@/lib/chatStorage'
 import ChatMessage from '@/components/chat/ChatMessage'
 import ChatInput from '@/components/chat/ChatInput'
 import QuickActions from '@/components/chat/QuickActions'
@@ -66,6 +67,9 @@ export default function Onboard() {
   } = useChat({
     contextType: 'onboarding',
     initialConversationId: data?.conversation_id,
+    persistStorageKey: slug
+      ? `appointment-assistant:chat:v${CHAT_STORAGE_VERSION}:onboarding:${slug}`
+      : false,
   })
 
   useEffect(() => {

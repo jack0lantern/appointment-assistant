@@ -1,5 +1,12 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import api from '@/api/client'
+import {
+  CHAT_STORAGE_VERSION,
+  clearChatStorage,
+  defaultChatStorageKey,
+  readChatStorage,
+  writeChatStorage,
+} from '@/lib/chatStorage'
 import type {
   AgentChatRequest,
   AgentChatResponse,
@@ -13,6 +20,8 @@ interface UseChatOptions {
   contextType?: AgentContextType
   pageContext?: Record<string, unknown>
   initialConversationId?: string
+  /** Storage key for local persistence, or false to disable */
+  persistStorageKey?: string | false
 }
 
 interface UseChatReturn {
@@ -49,17 +58,98 @@ function inferOnboardingState(response: AgentChatResponse): OnboardingState | nu
   return { step: 'intake', docs_verified: false, therapist_selected: false }
 }
 
+function resolvePersistKey(options: UseChatOptions): string | null {
+  if (options.persistStorageKey === false) return null
+  if (typeof options.persistStorageKey === 'string') return options.persistStorageKey
+  return defaultChatStorageKey(options.contextType)
+}
+
+function defaultOnboardingState(options: UseChatOptions): OnboardingState | null {
+  return options.contextType === 'onboarding'
+    ? { step: 'intake', docs_verified: false, therapist_selected: false }
+    : null
+}
+
+function buildInitialSession(options: UseChatOptions): {
+  messages: ChatMessage[]
+  suggestedActions: SuggestedAction[]
+  onboardingState: OnboardingState | null
+  conversationId: string | null
+} {
+  const persistKey = resolvePersistKey(options)
+  const baseOnboarding = defaultOnboardingState(options)
+  const fallbackConv = options.initialConversationId ?? null
+
+  if (!persistKey) {
+    return {
+      messages: [],
+      suggestedActions: [],
+      onboardingState: baseOnboarding,
+      conversationId: fallbackConv,
+    }
+  }
+
+  const snap = readChatStorage(persistKey)
+  if (snap && snap.messages.length > 0) {
+    return {
+      messages: snap.messages,
+      suggestedActions: snap.suggestedActions,
+      onboardingState: snap.onboardingState ?? baseOnboarding,
+      conversationId: snap.conversationId ?? fallbackConv,
+    }
+  }
+
+  return {
+    messages: [],
+    suggestedActions: [],
+    onboardingState: baseOnboarding,
+    conversationId: fallbackConv,
+  }
+}
+
 export function useChat(options: UseChatOptions = {}): UseChatReturn {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const initialRef = useRef<ReturnType<typeof buildInitialSession> | null>(null)
+  const getInitial = () => {
+    if (!initialRef.current) {
+      initialRef.current = buildInitialSession(options)
+    }
+    return initialRef.current
+  }
+
+  const persistKey = useMemo(
+    () => resolvePersistKey(options),
+    [options.contextType, options.persistStorageKey]
+  )
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() => getInitial().messages)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [suggestedActions, setSuggestedActions] = useState<SuggestedAction[]>([])
-  const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(
-    options.contextType === 'onboarding'
-      ? { step: 'intake', docs_verified: false, therapist_selected: false }
-      : null
-  )
-  const conversationIdRef = useRef<string | null>(options.initialConversationId ?? null)
+  const [suggestedActions, setSuggestedActions] = useState<SuggestedAction[]>(() => getInitial().suggestedActions)
+  const [onboardingState, setOnboardingState] = useState<OnboardingState | null>(() => getInitial().onboardingState)
+  const conversationIdRef = useRef<string | null>(getInitial().conversationId)
+
+  useEffect(() => {
+    const id = options.initialConversationId
+    if (!id) return
+    if (messages.length > 0) return
+    if (conversationIdRef.current === id) return
+    conversationIdRef.current = id
+  }, [options.initialConversationId, messages.length])
+
+  useEffect(() => {
+    if (!persistKey) return
+    if (messages.length === 0) {
+      clearChatStorage(persistKey)
+      return
+    }
+    writeChatStorage(persistKey, {
+      v: CHAT_STORAGE_VERSION,
+      messages,
+      suggestedActions,
+      onboardingState,
+      conversationId: conversationIdRef.current,
+    })
+  }, [persistKey, messages, suggestedActions, onboardingState])
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -207,12 +297,13 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   )
 
   const clearChat = useCallback(() => {
+    if (persistKey) clearChatStorage(persistKey)
     setMessages([])
     setSuggestedActions([])
     setOnboardingState(null)
     conversationIdRef.current = null
     setError(null)
-  }, [])
+  }, [persistKey])
 
   return {
     messages,
