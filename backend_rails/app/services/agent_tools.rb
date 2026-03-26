@@ -109,9 +109,10 @@ class AgentTools
     {
       name: "get_grounding_exercise",
       description:
-        "Returns a grounding or breathing exercise to help the user manage " \
-        "anxiety or emotional distress. Use this when the user is feeling " \
-        "overwhelmed, anxious, or asks for a calming technique.",
+        "Returns a grounding or breathing exercise plus a citation to a public health " \
+        "or NIH information page. Use when the user is overwhelmed, anxious, or asks " \
+        "for a calming technique. In your reply, share the exercise and then include " \
+        "the full citation text so the user can read the source.",
       input_schema: {
         type: "object",
         properties: {},
@@ -121,9 +122,11 @@ class AgentTools
     {
       name: "get_psychoeducation",
       description:
-        "Returns brief psychoeducation content on a topic. " \
+        "Returns brief psychoeducation content on a topic plus a citation " \
+        "to an NIH or professional-association information page. " \
         "Available topics: 'anxiety', 'first_session', 'therapy_general'. " \
-        "Use when the user asks about what therapy is like or about a mental health topic.",
+        "Use when the user asks about what therapy is like or about a mental health topic. " \
+        "Include the full citation in your reply after the educational text.",
       input_schema: {
         type: "object",
         properties: {
@@ -139,9 +142,11 @@ class AgentTools
     {
       name: "get_what_to_expect",
       description:
-        "Returns content about what the user can expect for a given stage. " \
+        "Returns content about what the user can expect for a given stage, plus a " \
+        "citation to an NIMH information page about care or psychotherapy. " \
         "Available contexts: 'onboarding', 'first_appointment'. " \
-        "Use when the user asks what to expect or seems nervous about a step.",
+        "Use when the user asks what to expect or seems nervous about a step. " \
+        "Include the full citation in your reply.",
       input_schema: {
         type: "object",
         properties: {
@@ -304,17 +309,18 @@ class AgentTools
       exec_cancel_appointment(input, auth_context)
 
     when "get_grounding_exercise"
-      { exercise: EmotionalSupportService.grounding_exercise }
+      bundle = EmotionalSupportService.grounding_exercise
+      { exercise: bundle[:exercise], citation: bundle[:citation] }
 
     when "get_psychoeducation"
       topic = input["topic"] || input[:topic] || ""
-      content = EmotionalSupportService.psychoeducation(topic)
-      content ? { content: content } : { error: "Unknown topic: #{topic}" }
+      bundle = EmotionalSupportService.psychoeducation(topic)
+      bundle || { error: "Unknown topic: #{topic}" }
 
     when "get_what_to_expect"
       context = input["context"] || input[:context] || ""
-      content = EmotionalSupportService.what_to_expect(context)
-      content ? { content: content } : { error: "Unknown context: #{context}" }
+      bundle = EmotionalSupportService.what_to_expect(context)
+      bundle || { error: "Unknown context: #{context}" }
 
     when "get_validation_message"
       { message: EmotionalSupportService.validation_message }

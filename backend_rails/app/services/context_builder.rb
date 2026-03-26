@@ -53,6 +53,8 @@ class ContextBuilder
       "- Use the get_validation_message tool to provide warm acknowledgment.\n" \
       "- Use get_grounding_exercise if they need a calming technique.\n" \
       "- Use get_psychoeducation for educational content about anxiety, therapy, etc.\n" \
+      "- Whenever a tool returns a \"citation\" field, append that exact line to your message " \
+      "so the user can open the referenced public health or professional source.\n" \
       "- Encourage them to speak with their therapist or a professional." + BASE_RULES,
 
     "document_upload" =>

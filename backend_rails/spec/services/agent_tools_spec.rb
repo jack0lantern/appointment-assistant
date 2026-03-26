@@ -70,7 +70,7 @@ RSpec.describe AgentTools do
     end
 
     describe "get_grounding_exercise" do
-      it "returns an exercise" do
+      it "returns an exercise and citation for the user-facing reply" do
         result = described_class.execute_tool(
           name: "get_grounding_exercise",
           auth_context: client_auth
@@ -78,17 +78,21 @@ RSpec.describe AgentTools do
         expect(result).to have_key(:exercise)
         expect(result[:exercise]).to be_a(String)
         expect(result[:exercise]).not_to be_empty
+        expect(result).to have_key(:citation)
+        expect(result[:citation]).to include("http")
       end
     end
 
     describe "get_psychoeducation" do
-      it "returns content for a valid topic" do
+      it "returns content and citation for a valid topic" do
         result = described_class.execute_tool(
           name: "get_psychoeducation",
           input: { "topic" => "anxiety" },
           auth_context: client_auth
         )
         expect(result).to have_key(:content)
+        expect(result).to have_key(:citation)
+        expect(result[:citation]).to include("http")
       end
 
       it "returns error for an invalid topic" do
@@ -103,13 +107,15 @@ RSpec.describe AgentTools do
     end
 
     describe "get_what_to_expect" do
-      it "returns content for a valid context" do
+      it "returns content and citation for a valid context" do
         result = described_class.execute_tool(
           name: "get_what_to_expect",
           input: { "context" => "onboarding" },
           auth_context: client_auth
         )
         expect(result).to have_key(:content)
+        expect(result).to have_key(:citation)
+        expect(result[:citation]).to include("http")
       end
 
       it "returns error for an invalid context" do

@@ -1,23 +1,46 @@
+# frozen_string_literal: true
+
+# Curated emotional-support copy with citations to public health / clinical education pages.
+# The agent must pass citations through to end users (see ContextBuilder + tool descriptions).
 class EmotionalSupportService
   GROUNDING_EXERCISES = [
-    "Let's try a quick grounding exercise. Look around and name:\n" \
-    "- **5** things you can see\n" \
-    "- **4** things you can touch\n" \
-    "- **3** things you can hear\n" \
-    "- **2** things you can smell\n" \
-    "- **1** thing you can taste\n\n" \
-    "Take your time with each one.",
-
-    "Here's a simple breathing exercise:\n" \
-    "1. Breathe in slowly for **4 counts**\n" \
-    "2. Hold for **4 counts**\n" \
-    "3. Breathe out slowly for **6 counts**\n" \
-    "4. Repeat 3-4 times\n\n" \
-    "This helps activate your body's natural calm response.",
-
-    "Try placing both feet flat on the floor. Press them down gently and " \
-    "notice the sensation of being grounded. Take three slow breaths, " \
-    "focusing on the feeling of your feet connecting with the ground."
+    {
+      exercise:
+        "Let's try a quick grounding exercise. Look around and name:\n" \
+        "- **5** things you can see\n" \
+        "- **4** things you can touch\n" \
+        "- **3** things you can hear\n" \
+        "- **2** things you can smell\n" \
+        "- **1** thing you can taste\n\n" \
+        "Take your time with each one.",
+      citation:
+        "NHS inform (Scotland), “Grounding exercises” — " \
+        "https://www.nhsinform.scot/healthy-living/mental-wellbeing/" \
+        "breathing-and-relaxation-exercises/grounding-exercises/"
+    },
+    {
+      exercise:
+        "Here's a simple breathing exercise:\n" \
+        "1. Breathe in slowly for **4 counts**\n" \
+        "2. Hold for **4 counts**\n" \
+        "3. Breathe out slowly for **6 counts**\n" \
+        "4. Repeat 3-4 times\n\n" \
+        "This helps activate your body's natural calm response.",
+      citation:
+        "National Center for Complementary and Integrative Health (NIH), " \
+        "“Relaxation Techniques: What You Need To Know” — " \
+        "https://www.nccih.nih.gov/health/relaxation-techniques-what-you-need-to-know"
+    },
+    {
+      exercise:
+        "Try placing both feet flat on the floor. Press them down gently and " \
+        "notice the sensation of being grounded. Take three slow breaths, " \
+        "focusing on the feeling of your feet connecting with the ground.",
+      citation:
+        "National Institute of Mental Health (NIH), “Caring for Your Mental Health” " \
+        "(relaxation and body awareness) — " \
+        "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health"
+    }
   ].freeze
 
   VALIDATION_MESSAGES = [
@@ -48,6 +71,18 @@ class EmotionalSupportService
     ]
   }.freeze
 
+  PSYCHOEDUCATION_CITATIONS = {
+    "anxiety" =>
+      "National Institute of Mental Health (NIH), “Anxiety Disorders” — " \
+      "https://www.nimh.nih.gov/health/topics/anxiety-disorders",
+    "first_session" =>
+      "National Institute of Mental Health (NIH), “Psychotherapies” — " \
+      "https://www.nimh.nih.gov/health/topics/psychotherapies",
+    "therapy_general" =>
+      "American Psychological Association, “Psychotherapy” — " \
+      "https://www.apa.org/topics/psychotherapy"
+  }.freeze
+
   WHAT_TO_EXPECT = {
     "onboarding" =>
       "Here's what to expect during onboarding:\n" \
@@ -64,6 +99,15 @@ class EmotionalSupportService
       "Remember: there are no wrong answers."
   }.freeze
 
+  WHAT_TO_EXPECT_CITATIONS = {
+    "onboarding" =>
+      "National Institute of Mental Health (NIH), “Help for Mental Illnesses” — " \
+      "https://www.nimh.nih.gov/health/find-help",
+    "first_appointment" =>
+      "National Institute of Mental Health (NIH), “Psychotherapies” — " \
+      "https://www.nimh.nih.gov/health/topics/psychotherapies"
+  }.freeze
+
   def self.grounding_exercise
     GROUNDING_EXERCISES.sample
   end
@@ -74,10 +118,21 @@ class EmotionalSupportService
 
   def self.psychoeducation(topic)
     snippets = PSYCHOEDUCATION[topic]
-    snippets&.sample
+    return unless snippets
+
+    {
+      content: snippets.sample,
+      citation: PSYCHOEDUCATION_CITATIONS[topic]
+    }
   end
 
   def self.what_to_expect(context)
-    WHAT_TO_EXPECT[context]
+    text = WHAT_TO_EXPECT[context]
+    return unless text
+
+    {
+      content: text,
+      citation: WHAT_TO_EXPECT_CITATIONS[context]
+    }
   end
 end

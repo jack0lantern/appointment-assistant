@@ -2,16 +2,19 @@ require "rails_helper"
 
 RSpec.describe EmotionalSupportService do
   describe ".grounding_exercise" do
-    it "returns a non-empty string" do
+    it "returns exercise text and an external citation" do
       result = described_class.grounding_exercise
-      expect(result).to be_a(String)
-      expect(result).not_to be_empty
+      expect(result).to be_a(Hash)
+      expect(result[:exercise]).to be_a(String)
+      expect(result[:exercise]).not_to be_empty
+      expect(result[:citation]).to be_a(String)
+      expect(result[:citation]).to include("http")
     end
 
-    it "contains supportive/actionable content" do
+    it "contains supportive/actionable content in exercise text" do
       10.times do
         result = described_class.grounding_exercise
-        expect(result.downcase).to match(/breathe|feet|see|touch|hear|ground/)
+        expect(result[:exercise].downcase).to match(/breathe|feet|see|touch|hear|ground/)
       end
     end
   end
@@ -32,10 +35,11 @@ RSpec.describe EmotionalSupportService do
   end
 
   describe ".psychoeducation" do
-    it "returns content for known topic" do
+    it "returns content and citation for known topic" do
       result = described_class.psychoeducation("anxiety")
       expect(result).not_to be_nil
-      expect(result).not_to be_empty
+      expect(result[:content]).not_to be_empty
+      expect(result[:citation]).to include("http")
     end
 
     it "returns nil for unknown topic" do
@@ -46,21 +50,22 @@ RSpec.describe EmotionalSupportService do
     it "returns first_session content mentioning session" do
       result = described_class.psychoeducation("first_session")
       expect(result).not_to be_nil
-      expect(result.downcase).to include("session")
+      expect(result[:content].downcase).to include("session")
     end
   end
 
   describe ".what_to_expect" do
-    it "returns onboarding content" do
+    it "returns onboarding content and citation" do
       result = described_class.what_to_expect("onboarding")
       expect(result).not_to be_nil
-      expect(result.downcase).to match(/onboarding|information/)
+      expect(result[:content].downcase).to match(/onboarding|information/)
+      expect(result[:citation]).to include("http")
     end
 
     it "returns first_appointment content" do
       result = described_class.what_to_expect("first_appointment")
       expect(result).not_to be_nil
-      expect(result).to match(/50 minutes|appointment/i)
+      expect(result[:content]).to match(/50 minutes|appointment/i)
     end
 
     it "returns nil for unknown context" do
